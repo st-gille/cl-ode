@@ -5,8 +5,24 @@
                         (t (:default "libnewton")))
 (use-foreign-library libnewton)
 
-(defcfun "lr_decomp" :int8 (flags :uint64 (:pointer (:pointer :double)) (:pointer :uint64)))
-(defcfun "lr_solve" :int8 (flags :uint64 (:pointer (:pointer :double)) (:pointer :double) (:pointer :double) (:pointer :uint64)))
+(defcfun "lr_decomp" :int8
+         (dim :uint64)
+         (matrix (:pointer (:pointer :double)))
+         (pivot (:pointer :uint64)))
+
+(defcfun "lr_solve" :int8
+         (dim :uint64)
+         (decomp-matrix (:pointer (:pointer :double)))
+         (rhs (:pointer :double))
+         (solution (:pointer :double))
+         (pivot (:pointer :uint64)))
+
+(defcfun "newtons_method" :int8
+         (dim :uint64)
+         (x (:pointer :double))
+         (y (:pointer :double))
+         (func :pointer)
+         (diff_func :pointer))
 
 (defmacro with-foreign-pointers (bindings &body body)
   "Wrap every binding (var size &optional size-var) in bindings with with-foreign-pointer."
