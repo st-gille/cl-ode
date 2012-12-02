@@ -30,18 +30,13 @@
          (cols :uint64)
          (x (:pointer (:pointer :double))))
 
-(defmacro with-foreign-pointers (bindings &body body)
-  "Wrap every binding (var size &optional size-var) in bindings with with-foreign-pointer."
+(defmacro wrap-binds (key bindings &body body)
+  "Wrap every binding in bindings with keyword."
   (if (null bindings)
     `(progn ,@body)
-    (let ((inner-bind `(with-foreign-pointer ,(car bindings) ,@body)))
-      (reduce (lambda (form binding) `(with-foreign-pointer ,binding ,form)) (rest bindings) :initial-value inner-bind))))
+    (let ((inner-bind `(,key ,(car bindings) ,@body)))
+      (reduce (lambda (form binding) `(,key ,binding ,form)) (rest bindings) :initial-value inner-bind))))
 
-(with-foreign-pointer (y 255 strlen)
-                      (with-foreign-pointer (x 5 dim)
-                                            (setf (mem-ref x :double (1- dim)) 1.0d0)
-                                            (setf (mem-ref y :double (1- strlen)) 1.0d0)))
+(defun wrap-binds-test ()
+ (macroexpand-1 '(wrap-binds with-foreign-pointer ((x dim) (b dim)) form1 form2)))
 
-(with-foreign-pointers ((x 4 dim) (y 255 strlen))
-                       (setf (mem-ref x :double (1- dim)) 1.0d0)
-                       (setf (mem-ref y :double (1- strlen)) 2.0d0))
