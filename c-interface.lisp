@@ -58,3 +58,15 @@
       (set-c-vector x (make-array dim :initial-contents (make-simple-list dim (lambda (i) (+ 2 (* i i))))))
       (print-vector dim x))))
 (set-c-vector-test)
+
+(defmethod set-c-matrix (A rows)
+  "Row-wise initialization of c-style matrices."
+  (loop for row being the elements of rows
+        for i from 0
+        do (set-c-vector (mem-aref A :pointer i) row)))
+
+(defmethod set-c-matrix (A (rows array))
+  "Row-wise initialization of c-style matrices via 2d-arrays."
+      (loop for i below (array-dimension rows 0)
+            do (loop for j below (array-dimension rows 1)
+                   do (setf (mem-aref (mem-aref A :pointer i) :double j) (aref rows i j)))))
