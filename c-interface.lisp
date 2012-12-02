@@ -70,3 +70,13 @@
       (loop for i below (array-dimension rows 0)
             do (loop for j below (array-dimension rows 1)
                    do (setf (mem-aref (mem-aref A :pointer i) :double j) (aref rows i j)))))
+
+(defun alloc-c-matrix (A (rows integer) (cols integer) &key initial-contents (type :double))
+  "Allocate enough memory to hold <rows>*<cols> objects of foreign type <type>. Row-wise initialization possible."
+  (loop for i below rows
+        for row being the elements of initial-contents
+        do (setf (mem-aref A :pointer i) (foreign-alloc type :count cols :initial-contents row))))
+
+(defun free-c-matrix (A rows)
+  (dotimes (row rows)
+    (foreign-free (mem-aref A :pointer row))))
