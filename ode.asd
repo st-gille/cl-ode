@@ -4,4 +4,5 @@
  :author "Stefan Gille <gille@numasoft.de>"
  :licence "Public Domain"
  :components ((:file "package")
-              (:file "runge-kutta")))
+              (:file "runge-kutta")
+              (:file "c-interface")))
