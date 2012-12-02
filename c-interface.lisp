@@ -40,3 +40,21 @@
 (defun wrap-binds-test ()
  (macroexpand-1 '(wrap-binds with-foreign-pointer ((x dim) (b dim)) form1 form2)))
 
+(defun set-c-vector (vec vals &optional (type :double))
+  "Convert list or vector to c-array"
+  (loop for val being the elements of vals
+        for i from 0
+        do (setf (mem-aref vec type i) val)))
+
+(defun make-simple-list (dim &optional (formula #'+))
+  (loop for j below dim collect (coerce (funcall formula j) 'double-float)))
+
+(defun set-c-vector-test ()
+  (let ((dim 5))
+    (with-foreign-object (x :double dim)
+      (print-vector dim x)
+      (set-c-vector x (make-simple-list dim))
+      (print-vector dim x)
+      (set-c-vector x (make-array dim :initial-contents (make-simple-list dim (lambda (i) (+ 2 (* i i))))))
+      (print-vector dim x))))
+(set-c-vector-test)
