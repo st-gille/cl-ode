@@ -80,3 +80,27 @@
 (defun free-c-matrix (A rows)
   (dotimes (row rows)
     (foreign-free (mem-aref A :pointer row))))
+
+(defun make-simple-matrix (rows cols &optional (formula #'+))
+  (loop for i below rows collect (loop for j below cols collect (coerce (funcall formula i j) 'double-float))))
+
+(defun list-to-2d-array (list)
+  (make-array (list (length list)
+                    (length (first list)))
+              :initial-contents list))
+
+(defun set-c-matrix-test ()
+  (let* ((rows 3)
+         (cols 4)
+         (m1 (make-simple-matrix rows cols (lambda (i j) (random 100))))
+         (m2 (list-to-2d-array (make-simple-matrix rows cols (lambda (i j) (+ i (* i j)))))))
+    (with-foreign-object (A :double rows)
+      (alloc-c-matrix A rows cols :initial-contents (make-simple-matrix rows cols))
+      (print-matrix rows cols A)
+      (set-c-matrix A m1)
+      (print-matrix rows cols A)
+      (set-c-matrix A m2)
+      (print-matrix rows cols A)
+      (free-matrix A rows))))
+
+(set-c-matrix-test)
