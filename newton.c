@@ -1,6 +1,7 @@
 
 #include "math.h"
 #include "float.h"
+#include "stdio.h"
 #include "stdint.h"
 #include "stdlib.h"
 
@@ -165,12 +166,11 @@ void free_newton_data(struct newton_data_t* data)
     free(data->pivot);
 }
 
-err_t newtons_method(double* x,
-                   const double* t,
-                   int dim,
-                   int vars,
-                   void (*f)(const double*, const double*, double*),
-                   void (*df)(const double*, const double*, double**))
+err_t newtons_method(dim_t dim,
+        double* x,
+        const double* t,
+        void (*f)(const double*, const double*, double*),
+        void (*df)(const double*, const double*, double**))
 {
     struct newton_data_t data;
     init_newton_data(&data, dim);
@@ -224,4 +224,24 @@ err_t newtons_method(double* x,
 
     free_newton_data(&data);
     return FAILURE;
+}
+
+void print_vector(dim_t dim, const double *x)
+{
+    printf("dim: %u, pointer: %x\n", dim, x);
+    printf("[");
+    if(x && dim > 0)
+    {
+        printf(" %e", x[0]);
+
+        for(dim_t i = 1; i < dim; ++i)
+            printf(" %e", x[i]);
+    }
+    printf(" ]\n");
+}
+
+void print_matrix(dim_t rows, dim_t cols, const_mat A)
+{
+    for(dim_t row = 0; row < rows; ++row)
+        print_vector(cols, A[row]);
 }

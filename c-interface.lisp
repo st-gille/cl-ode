@@ -24,6 +24,12 @@
          (func :pointer)
          (diff_func :pointer))
 
+(defcfun "print_vector" :void (dim :uint64) (x (:pointer :double)))
+(defcfun "print_matrix" :void
+         (rows :uint64)
+         (cols :uint64)
+         (x (:pointer (:pointer :double))))
+
 (defmacro with-foreign-pointers (bindings &body body)
   "Wrap every binding (var size &optional size-var) in bindings with with-foreign-pointer."
   (if (null bindings)
