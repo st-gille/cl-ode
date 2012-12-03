@@ -226,19 +226,25 @@ err_t newtons_method(dim_t dim,
     return FAILURE;
 }
 
-void print_vector(dim_t dim, const double *x)
-{
-    printf("dim: %u, pointer: %x\n", dim, x);
-    printf("[");
-    if(x && dim > 0)
-    {
-        printf(" %e", x[0]);
-
-        for(dim_t i = 1; i < dim; ++i)
-            printf(" %e", x[i]);
-    }
-    printf(" ]\n");
+#define DEFINE_PRINT_VECTOR_T(type, suffix, format) \
+    void print_vector##suffix(dim_t dim, type *x)\
+{\
+    printf("[");\
+    if(x && dim > 0)\
+    {\
+        printf(format, x[0]);\
+        \
+        for(dim_t i = 1; i < dim; ++i)\
+        printf(format, x[i]);\
+    }\
+    printf(" ]\n");\
 }
+
+DEFINE_PRINT_VECTOR_T(int, _i, " %d")
+DEFINE_PRINT_VECTOR_T(dim_t, _u, " %d")
+DEFINE_PRINT_VECTOR_T(double, , " %e")
+
+#undef DEFINE_PRINT_VECTOR_T
 
 void print_matrix(dim_t rows, dim_t cols, const_mat A)
 {
