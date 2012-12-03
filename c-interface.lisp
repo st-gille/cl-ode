@@ -30,15 +30,15 @@
          (cols :uint64)
          (x (:pointer (:pointer :double))))
 
-(defmacro wrap-binds (key bindings &body body)
-  "Wrap every binding in bindings with keyword."
-  (if (null bindings)
-    `(progn ,@body)
-    (let ((inner-bind `(,key ,(car bindings) ,@body)))
-      (reduce (lambda (form binding) `(,key ,binding ,form)) (rest bindings) :initial-value inner-bind))))
+(defmacro wrap-binds (form bindings &body body)
+  "Nest all bindings in <bindings> within <form>."
+  (if bindings
+    `(,form ,(first bindings)
+            (wrap-binds ,form ,(rest bindings) ,@body))
+  `(progn ,@body)))
 
 (defun wrap-binds-test ()
- (macroexpand-1 '(wrap-binds with-foreign-pointer ((x dim) (b dim)) form1 form2)))
+ (macroexpand '(wrap-binds with-foreign-pointer ((x dim) (b dim)) form1 form2)))
 
 (defun set-c-vector (vec vals &optional (type :double))
   "Convert list or vector to c-array"
