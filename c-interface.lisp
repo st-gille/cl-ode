@@ -104,7 +104,7 @@
       (print-matrix rows cols A)
       (set-c-matrix A m2)
       (print-matrix rows cols A)
-      (free-matrix A rows))))
+      (free-c-matrix A rows))))
 
 (set-c-matrix-test)
 
@@ -126,7 +126,7 @@
          (full-body `(with-foreign-object (,name :pointer ,g-rows)
                        (alloc-c-matrix ,name ,g-rows ,g-cols :initial-contents ,g-contents :type ,type)
                        ,@body
-                       (free-matrix ,name ,g-rows))))
+                       (free-c-matrix ,name ,g-rows))))
     (if have-dims
       full-body
       (make-let-env `((,g-contents ,initial-contents)
