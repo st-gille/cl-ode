@@ -75,7 +75,6 @@
   "Allocate enough memory to hold <rows>*<cols> objects of foreign type <type>. Row-wise initialization possible."
   (loop for i below (if rows rows (length initial-contents))
         do
-        (prin1 "oho")
         (setf (mem-aref A :pointer i) (if initial-contents
                                         (foreign-alloc type :initial-contents (elt initial-contents i))
                                         (foreign-alloc type :count cols)))))
@@ -108,20 +107,13 @@
 
 (set-c-matrix-test)
 
-(defun make-let-env (binds &rest rest)
-  `(let* ,(loop for (var bind) in binds
-                 collect `(,var ,bind))
-     ,@rest))
-
 (defmacro with-matrix ((name &key (type :double) initial-contents (dims '(0 0) have-dims)) &body body)
   (let* ((g-rows (if have-dims (first dims) (gensym)))
          (g-cols (if have-dims (second dims) (gensym)))
          (g-contents (if have-dims initial-contents (gensym)))
-         (rowform (if have-dims
-                    `(first ,dims)
+         (rowform (if (not have-dims)
                     `(length ,g-contents)))
-         (colform (if have-dims
-                    `(second ,dims)
+         (colform (if (not have-dims)
                     `(length (first ,g-contents))))
          (full-body `(with-foreign-object (,name :pointer ,g-rows)
                        (alloc-c-matrix ,name ,g-rows ,g-cols :initial-contents ,g-contents :type ,type)
@@ -129,7 +121,7 @@
                        (free-c-matrix ,name ,g-rows))))
     (if have-dims
       full-body
-      (make-let-env `((,g-contents ,initial-contents)
-                      (,g-rows ,rowform)
-                      (,g-cols ,colform))
-                    full-body))))
+      `(let* ((,g-contents ,initial-contents)
+              (,g-rows ,rowform)
+              (,g-cols ,colform))
+         ,full-body))))
