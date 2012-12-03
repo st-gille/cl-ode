@@ -59,34 +59,37 @@ struct uint_errno_t searchpivotincoloumn(dim_t dim, const_mat A, dim_t column)
 
 err_t lr_decomp(dim_t dim, double **A, dim_t * ipiv)
 {
-    dim_t i, j, p;
-    // Initialize pivot vector.
+    dim_t i, j;
+    double dtmp;
+    struct uint_errno_t ret;
+
     for (i = 0; i < dim; ++i)
         ipiv[i] = i;
 
     for (i = 0; i < dim; ++i)
     {
-        struct uint_errno_t ret = searchpivotincoloumn(dim, (const_mat) A, i);
-        if (ret.errno != 0)
+        ret = searchpivotincoloumn(dim, (const_mat) A, i);
+        if (ret.errno == FAILURE)
             return FAILURE;
 
-        if (p != i) // swap rows
+        if (ret.result != i)
         {
-            double *dtmp = A[i];
-            A[i] = A[p];
-            A[p] = dtmp;
+            for(j = 0; j < dim; ++j)
+            {
+                dtmp = A[i][j];
+                A[i][j] = A[ret.result][j];
+                A[ret.result][j] = dtmp;
+            }
             j = ipiv[i];
-            ipiv[i] = ipiv[p];
-            ipiv[p] = j;
+            ipiv[i] = ipiv[ret.result];
+            ipiv[ret.result] = j;
         }
 
-        for (p = i + 1; p < dim; ++p)
+        for (ret.result = i + 1; ret.result < dim; ++ret.result)
         {
-            A[p][i] /= A[i][i];
+            A[ret.result][i] /= A[i][i];
             for (j = i + 1; j < dim; ++j)
-            {
-                A[p][j] -= A[p][i] * A[i][j];
-            }
+                A[ret.result][j] -= A[ret.result][i] * A[i][j];
         }
     }
     return SUCCESS;
@@ -114,12 +117,15 @@ void lr_solve(dim_t dim, const double * const * LR, const double *b, double *x, 
     }
 
     // backward substitution
-    for (i = dim - 1; i >= 0; --i)
+    for (i = dim - 1; ; --i)
     {
         tmp = x[i];
         for (j = dim - 1; j > i; --j)
             tmp -= (LR[i][j] * x[j]);
         x[i] = tmp / LR[i][i];
+
+        if (i == 0)
+            break;
     }
 }
 
