@@ -1,4 +1,4 @@
-
-(defpackage #:ode
-  (:use #:cl #:cffi)
-  (:export #:runge-kutta))
+(require :cffi)
+(defpackage :ode
+  (:use :cl :cffi)
+  (:export :runge-kutta))

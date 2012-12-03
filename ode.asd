@@ -3,6 +3,7 @@
  :version "0.1"
  :author "Stefan Gille <gille@numasoft.de>"
  :licence "Public Domain"
+ :serial t
  :components ((:file "package")
               (:file "runge-kutta")
               (:file "c-interface")))
