@@ -104,3 +104,29 @@
       (free-matrix A rows))))
 
 (set-c-matrix-test)
+
+(defun make-let-env (binds &rest rest)
+  `(let* ,(loop for (var bind) in binds
+                 collect `(,var ,bind))
+     ,@rest))
+
+(defmacro with-matrix ((name &key (type :double) initial-contents (dims '(0 0) have-dims)) &body body)
+  (let* ((g-rows (if have-dims (first dims) (gensym)))
+         (g-cols (if have-dims (second dims) (gensym)))
+         (g-contents (if have-dims initial-contents (gensym)))
+         (rowform (if have-dims
+                    `(first ,dims)
+                    `(length ,g-contents)))
+         (colform (if have-dims
+                    `(second ,dims)
+                    `(length (first ,g-contents))))
+         (full-body `(with-foreign-object (,name :pointer ,g-rows)
+                       (alloc-c-matrix ,name ,g-rows ,g-cols :initial-contents ,g-contents :type ,type)
+                       ,@body
+                       (free-matrix ,name ,g-rows))))
+    (if have-dims
+      full-body
+      (make-let-env `((,g-contents ,initial-contents)
+                      (,g-rows ,rowform)
+                      (,g-cols ,colform))
+                    full-body))))
