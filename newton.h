@@ -19,7 +19,7 @@ struct uint_errno_t
 
 #define EPS (DBL_EPSILON)
 
-double norm2sqr(int dim, const double *x);
+double norm2sqr(dim_t dim, const double *x);
 double norm2(dim_t dim, const double *x);
 
 

@@ -7,19 +7,19 @@ ALLOBJS = $(patsubst %.cpp, ${BUILD_DIR}/%.o,$(SOURCE_FILES))
 INCLUDES =
 
 CC = gcc
-CFLAGS = -std=c99 -O0 -g3 -Wall
+CFLAGS += -std=c99 -O0 -g3 -Wall
 LIBS = -lm
 
 .PRECIOUS: %.o %.so
 
 %.so : %.o
-	${CC} -shared -Wl,-soname="$@" -o"$@" ${INCLUDES} ${CFLAGS} $< ${LIBS}
+	${CC} -shared -Wl,-soname="$@" -o"$@" ${INCLUDES} ${CFLAGS} ${CCFLAGS} $< ${LIBS}
 
 lib%.o : %.c
-	${CC} -fPIC ${INCLUDES} -o"$@" -c ${CFLAGS} $<
+	${CC} -fPIC ${INCLUDES} -o"$@" -c ${CFLAGS} ${CCFLAGS} $<
 
 test: test.o
-	${CC} -o"$@" ${INCLUDES} ${CFLAGS} $< ${LIBS} -lnewton
+	${CC} -o"$@" ${INCLUDES} ${CFLAGS} ${CCFLAGS} $< ${LIBS} -lnewton
 
 install: libnewton.so
 	sudo cp -f --remove-destination $< /usr/lib/$<.1.0.0
