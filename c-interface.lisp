@@ -25,6 +25,8 @@
          (diff_func :pointer))
 
 (defcfun "print_vector" :void (dim :uint64) (x (:pointer :double)))
+(defcfun "print_vector_i" :void (dim :uint64) (x (:pointer :int)))
+(defcfun "print_vector_u" :void (dim :uint64) (x (:pointer :uint64)))
 (defcfun "print_matrix" :void
          (rows :uint64)
          (cols :uint64)
@@ -91,21 +93,6 @@
                     (length (first list)))
               :initial-contents list))
 
-(defun set-c-matrix-test ()
-  (let* ((rows 3)
-         (cols 4)
-         (m1 (make-simple-matrix rows cols (lambda (i j) (random 100))))
-         (m2 (list-to-2d-array (make-simple-matrix rows cols (lambda (i j) (+ i (* i j)))))))
-    (with-foreign-object (A :double rows)
-      (alloc-c-matrix A rows cols :initial-contents (make-simple-matrix rows cols))
-      (print-matrix rows cols A)
-      (set-c-matrix A m1)
-      (print-matrix rows cols A)
-      (set-c-matrix A m2)
-      (print-matrix rows cols A)
-      (free-c-matrix A rows))))
-
-(set-c-matrix-test)
 
 (defmacro with-matrix ((name &key (type :double) initial-contents (dims '(0 0) have-dims)) &body body)
   (let* ((g-rows (if have-dims (first dims) (gensym)))
@@ -125,3 +112,16 @@
               (,g-rows ,rowform)
               (,g-cols ,colform))
          ,full-body))))
+
+(defun lr-test (rows)
+  (with-foreign-objects ((x :double rows) (b :double rows) (pivot :uint64 rows))
+    (with-matrix (A :initial-contents (make-simple-matrix rows rows (lambda (i j)(declare (ignore i j)) (random 100))))
+      (print-matrix rows rows A)
+      (when (= 1 (lr-decomp rows A pivot)) (print "unheil!\n")
+        (print-matrix rows rows A)
+        (print-vector-u rows pivot )
+        (set-c-vector b (make-simple-list rows (lambda (i)(declare (ignore i)) (random 100))))
+        (print-vector rows b)
+        (print-vector rows x)
+        (lr-solve rows A b x pivot)
+        (print-vector rows x)))))
