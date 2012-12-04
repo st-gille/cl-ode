@@ -96,6 +96,23 @@
               (,g-rows ,rowform)
               (,g-cols ,colform))
          ,full-body))))
+(defcallback cb-f :void ((py :pointer) (px :pointer) (pres :pointer))
+  (let ((y (mem-ref py :double))
+        (x (mem-ref px :double)))
+    (setf (mem-ref pres :double) (- 1 (* x (exp y))))))
+
+(defcallback df :void ((py :pointer) (px :pointer) (ppres ::pointer))
+  (let ((y (mem-ref py :double))
+        (x (mem-ref px :double))
+        (pres (mem-ref ppres :pointer)))
+    (setf (mem-ref pres :double) (- (* x (exp y))))))
+
+(defun newton-test ()
+  (with-foreign-objects ((y :double) (x :double))
+    (set-c-vector y '(0.6d0))
+    (set-c-vector x '(1.5d0))
+    (newtons-method 1 y x (get-callback 'cb-f) (get-callback 'df))
+    (print-vector 1 y)))
 
 (defun lr-test (rows)
   (with-foreign-objects ((x :double rows) (b :double rows) (pivot :uint64 rows))
