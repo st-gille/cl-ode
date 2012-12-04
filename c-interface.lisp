@@ -32,24 +32,11 @@
          (cols :uint64)
          (x (:pointer (:pointer :double))))
 
-(defmacro wrap-binds (form bindings &body body)
-  "Nest all bindings in <bindings> within <form>."
-  (if bindings
-    `(,form ,(first bindings)
-            (wrap-binds ,form ,(rest bindings) ,@body))
-    `(progn ,@body)))
-
-(defun wrap-binds-test ()
- (macroexpand '(wrap-binds with-foreign-pointer ((x dim) (b dim)) form1 form2)))
-
 (defun set-c-vector (vec vals &optional (type :double))
   "Convert list or vector to c-array"
   (loop for val being the elements of vals
         for i from 0
         do (setf (mem-aref vec type i) val)))
-
-(defun make-simple-list (dim &optional (formula #'+))
-  (loop for j below dim collect (coerce (funcall formula j) 'double-float)))
 
 (defun set-c-vector-test ()
   (let ((dim 5))
@@ -85,13 +72,6 @@
   (dotimes (row no-of-rows)
     (foreign-free (mem-aref A :pointer row))))
 
-(defun make-simple-matrix (rows cols &optional (formula #'+))
-  (loop for i below rows collect (loop for j below cols collect (coerce (funcall formula i j) 'double-float))))
-
-(defun list-to-2d-array (list)
-  (make-array (list (length list)
-                    (length (first list)))
-              :initial-contents list))
 
 
 (defmacro with-matrix ((name &key (type :double) initial-contents (dims '(0 0) have-dims)) &body body)
