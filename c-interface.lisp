@@ -38,6 +38,10 @@
         for i from 0
         do (setf (mem-aref vec type i) val)))
 
+(defun convert-from-c-vector (size vec &optional (type :double))
+  (loop for i below size
+        collect (mem-aref vec type i)))
+
 (defun set-c-vector-test ()
   (let ((dim 5))
     (with-foreign-object (x :double dim)
