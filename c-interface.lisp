@@ -37,7 +37,7 @@
   (if bindings
     `(,form ,(first bindings)
             (wrap-binds ,form ,(rest bindings) ,@body))
-  `(progn ,@body)))
+    `(progn ,@body)))
 
 (defun wrap-binds-test ()
  (macroexpand '(wrap-binds with-foreign-pointer ((x dim) (b dim)) form1 form2)))
@@ -69,9 +69,9 @@
 
 (defmethod set-c-matrix (A (rows array))
   "Row-wise initialization of c-style matrices via 2d-arrays."
-      (loop for i below (array-dimension rows 0)
-            do (loop for j below (array-dimension rows 1)
-                   do (setf (mem-aref (mem-aref A :pointer i) :double j) (aref rows i j)))))
+  (loop for i below (array-dimension rows 0)
+        do (loop for j below (array-dimension rows 1)
+                 do (setf (mem-aref (mem-aref A :pointer i) :double j) (aref rows i j)))))
 
 (defun alloc-c-matrix (A rows cols &key initial-contents (type :double))
   "Allocate enough memory to hold <rows>*<cols> objects of foreign type <type>. Row-wise initialization possible."
@@ -81,8 +81,8 @@
                                         (foreign-alloc type :initial-contents (elt initial-contents i))
                                         (foreign-alloc type :count cols)))))
 
-(defun free-c-matrix (A rows)
-  (dotimes (row rows)
+(defun free-c-matrix (A no-of-rows)
+  (dotimes (row no-of-rows)
     (foreign-free (mem-aref A :pointer row))))
 
 (defun make-simple-matrix (rows cols &optional (formula #'+))
