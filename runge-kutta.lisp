@@ -12,9 +12,8 @@
            (formula (lambda (fx fy) (* 0.5 (/ 1.0 *eps*) (- fx fy)))))
       (mapcar formula fx+ fx-))))
 
-(defmacro make-autonomous (f)
-  (let ((x (gensym)))
-    `#'(lambda (,x) (conc 1 (funcall f (first ,x) (rest ,x))))))
+(defun make-autonomous (f)
+    (lambda (x) (list 1 (funcall f (first x) (rest x)))))
 
 (defvar A '((0 0) (0.5 0.5)))
 (defvar b '(0.5 0.5))
