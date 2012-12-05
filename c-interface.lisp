@@ -76,26 +76,17 @@
   (dotimes (row no-of-rows)
     (foreign-free (mem-aref A :pointer row))))
 
+(defmacro with-matrix ((name &key (type :double) initial-contents (dims nil have-dims)) &body body)
+  (with-gensyms (g-dims g-contents g-rows g-cols)
+    `(let* (,@(if have-dims `((,g-dims ,dims)))
+            ,@(if (not have-dims) `((,g-contents ,initial-contents)))
+            (,g-rows ,(if have-dims `(first ,g-dims) `(length ,g-contents)))
+            (,g-cols ,(if have-dims `(second ,g-dims) `(length (first ,g-contents)))))
+    (with-foreign-object (,name :pointer ,g-rows)
+     (alloc-c-matrix ,name ,g-rows ,g-cols ,@(if (not have-dims) `(:initial-contents ,g-contents)) :type ,type)
+     ,@body
+     (free-c-matrix ,name ,g-rows)))))
 
-
-(defmacro with-matrix ((name &key (type :double) initial-contents (dims '(0 0) have-dims)) &body body)
-  (let* ((g-rows (if have-dims (first dims) (gensym)))
-         (g-cols (if have-dims (second dims) (gensym)))
-         (g-contents (if have-dims initial-contents (gensym)))
-         (rowform (if (not have-dims)
-                    `(length ,g-contents)))
-         (colform (if (not have-dims)
-                    `(length (first ,g-contents))))
-         (full-body `(with-foreign-object (,name :pointer ,g-rows)
-                       (alloc-c-matrix ,name ,g-rows ,g-cols :initial-contents ,g-contents :type ,type)
-                       ,@body
-                       (free-c-matrix ,name ,g-rows))))
-    (if have-dims
-      full-body
-      `(let* ((,g-contents ,initial-contents)
-              (,g-rows ,rowform)
-              (,g-cols ,colform))
-         ,full-body))))
 (defcallback cb-f :void ((py :pointer) (px :pointer) (pres :pointer))
   (let ((y (mem-ref py :double))
         (x (mem-ref px :double)))
