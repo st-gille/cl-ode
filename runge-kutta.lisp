@@ -44,8 +44,7 @@
 
 (defun make-discretization (t0 t1 stepsize)
   (loop as i from t0 to t1 by stepsize
-        collect i into steps
-        finally (return (nconc steps (list t1)))))
+        collect i))
 
 (defun runge-kutta-graph (f x0 t0 t1 stepsize)
   (loop as next-t from t0 to t1 by stepsize
