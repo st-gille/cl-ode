@@ -7,3 +7,6 @@
  :components ((:file "package")
               (:file "runge-kutta")
               (:file "c-interface")))
+
+(require :asdf)
+(require :cffi)
