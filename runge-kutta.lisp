@@ -42,6 +42,10 @@
          (bks (mapcar (lambda (bi k) (mapcar (lambda (ki) (* bi ki)) k)) b ks)))
     (apply #'mapcar (cons #'+ (cons x0 bks)))))
 
+(defun make-discretization (t0 t1 stepsize)
+  (loop as i from t0 to t1 by stepsize
+        collect i into steps
+        finally (return (nconc steps (list t1)))))
 
 (defun runge-kutta (f x0 t0 t1 stepsize)
   (if (> t0 t1)
