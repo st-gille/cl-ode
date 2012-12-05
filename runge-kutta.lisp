@@ -64,6 +64,7 @@
       (t1 1))
   (time (runge-kutta f x0 t0 t1 inc))
   t)
+
 (defun num-equal (a b)
   (and a b (< (abs (- a b)) *eps*)))
 
@@ -77,7 +78,6 @@
 (defun cached-ode-solution (the-ode init-t0 init-x0 init-stepsize)
   (let ((stepsize (max *eps* init-stepsize))
         (known-values (list (list init-t0 init-x0))))
-    ;(t1 0.1))
     (flet ((append-to-values (rrest vals)
              (let ((rst (cdr rrest)))
                (setf (cdr rrest) (if rst (cons vals rst) vals)))))
