@@ -47,6 +47,17 @@
         collect i into steps
         finally (return (nconc steps (list t1)))))
 
+(defun runge-kutta-graph (f x0 t0 t1 stepsize)
+  (loop as next-t from t0 to t1 by stepsize
+        for x = x0
+        then (runge-kutta-single-step f x next-t stepsize)
+        collect (list next-t x) into graph
+        finally (return
+                  (nconc graph
+                         (list (list t1
+                                     (let ((last-t (- next-t stepsize)))
+                                       (runge-kutta-single-step f x last-t (- t1 last-t)))))))))
+
 (defun runge-kutta (f x0 t0 t1 stepsize)
   (if (> t0 t1)
     (list x0)
@@ -59,46 +70,40 @@
       (list ft0)
       (cons ft0 (eval-f f (+ t0 stepsize) t1 stepsize)))))
 
-(time (runge-kutta-single-step (lambda (x y) '(1)) '(1.0) 0.0 0.01))
-
-(let ((f (lambda (x y) (list (first y) (third y) (fourth y) (second y) (* x x))))
-      (x0 '(1.0 1.0 1.0 1.0 1.0))
-      (t0 0.0)
-      (inc 0.01)
-      (t1 1))
-  (time (runge-kutta f x0 t0 t1 inc))
-  t)
-
 (defun num-equal (a b)
   (and a b (< (abs (- a b)) *eps*)))
 
-(defun find-much (item alist)
-  (let ((prev alist))
-    (labels ((dist (other) (abs (- item (caar other))))
-             (pred (list) (or (null list) (> (caar list) item)))
-             (rec (cur) (if (pred (rest (setq prev cur))) prev (rec (rest cur)))))
-      (rec alist))))
+(defun nassoc (value alist)
+  (assoc value alist :test #'num-equal))
+
+(defun find-last-smaller (item alist)
+  (loop for i = alist
+        then (rest i)
+        when (or (null (rest i))
+                 (> (caar (rest i)) item))
+        return i))
+
+(defun insert-at (place-to-put new-points)
+  (let ((new-tail (cdr place-to-put)))
+    (if new-tail
+      (setf (cdr place-to-put) (append new-points new-tail))
+      (nconc place-to-put new-points))))
 
 (defun cached-ode-solution (the-ode init-t0 init-x0 init-stepsize)
   (let ((stepsize (max *eps* init-stepsize))
-        (known-values (list (list init-t0 init-x0))))
-    (flet ((append-to-values (rrest vals)
-             (let ((rst (cdr rrest)))
-               (setf (cdr rrest) (if rst (cons vals rst) vals)))))
+        (known-graph (list (list init-t0 init-x0))))
+    (values
       (lambda (t1)
-        (let* ((closest (find-much t1 known-values))
+        (let* ((closest (find-last-smaller t1 known-graph))
                (t0 (caar closest))
                (x0 (cadar closest)))
+          (if (< t1 t0)
+            (error "Can't go back in time."))
           (cond
             ((num-equal t0 t1)
-             (print 'look-up)
              x0)
-            ((<= (abs (- t0 t1)) stepsize)
-             (print 'single-step)
-             (append-to-values closest
-               (list t1 (runge-kutta-single-step the-ode x0 t0 (- t1 t0)))))
             (t
-              (print 'full-step)
-              (append-to-values closest (mapcar
-                                          (lambda (&rest rest) (cons (setf t0 (+ t0 stepsize)) rest))
-                                          (runge-kutta the-ode x0 t0 t1 stepsize))))))))))
+              (let ((graph (runge-kutta-graph the-ode x0 t0 t1 stepsize)))
+                (insert-at closest graph)
+                (cadar (last graph)))))))
+      (lambda () known-graph))))
