@@ -1,15 +1,16 @@
 (in-package :ode)
 
-(defvar *eps* 1.0e-4)
+(defvar *eps* 1.0e-14)
+(defvar *step* 1.0e-4)
 
 (defun central-diff-quot (f)
   "Return new function approximating the derivative of input."
   (lambda (x)
-    (let* ((x+ (+ x *eps*))
-           (x- (- x *eps*))
+    (let* ((x+ (+ x *step*))
+           (x- (- x *step*))
            (fx+ (funcall f x+))
            (fx- (funcall f x-))
-           (formula (lambda (fx fy) (* 0.5 (/ 1.0 *eps*) (- fx fy)))))
+           (formula (lambda (fx fy) (* 0.5 (/ 1.0 *step*) (- fx fy)))))
       (mapcar formula fx+ fx-))))
 
 (defun make-autonomous (f)
