@@ -31,14 +31,18 @@
 (defun weight-x (x k a)
   (if (not k) x (mapcar (lambda (x y z)(+ x (* y z))) x k a)))
 
-(defun solve-rks (f x0 t0 stepsize)
+(defun solve-explicit-rks (f x0 t0 stepsize)
   (let* ((k nil)
          (scale (lambda (x) (* stepsize x)))
-         (substitution-step  (lambda (a c) (mapcar scale (funcall f (+ t0 (* c stepsize)) (weight-x x0 k a))))))
+         (substitution-step  (lambda (a c)
+                               (mapcar scale
+                                       (funcall f
+                                                (+ t0 (* c stepsize))
+                                                (weight-x x0 k a))))))
     (nconc k (mapcar substitution-step A c))))
 
 (defun runge-kutta-single-step (f x0 t0 stepsize)
-  (let* ((ks (solve-rks f x0 t0 stepsize))
+  (let* ((ks (solve-explicit-rks f x0 t0 stepsize))
          (bks (mapcar (lambda (bi k) (mapcar (lambda (ki) (* bi ki)) k)) b ks)))
     (apply #'mapcar (cons #'+ (cons x0 bks)))))
 
@@ -58,7 +62,7 @@
                                        (runge-kutta-single-step f x last-t (- t1 last-t)))))))))
 
 (defun runge-kutta (f x0 t0 t1 stepsize)
-  (if (> t0 t1)
+  (if (>= t0 t1)
     (list x0)
     (let ((next (runge-kutta-single-step f x0 t0 stepsize)))
       (cons x0 (runge-kutta f next (+ t0 stepsize) t1 stepsize)))))
