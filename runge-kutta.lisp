@@ -63,3 +63,37 @@
       (t1 1))
   (time (runge-kutta f x0 t0 t1 inc))
   t)
+(defun num-equal (a b)
+  (and a b (< (abs (- a b)) *eps*)))
+
+(defun find-much (item alist)
+  (let ((prev alist))
+    (labels ((dist (other) (abs (- item (caar other))))
+             (pred (list) (or (null list) (> (caar list) item)))
+             (rec (cur) (if (pred (rest (setq prev cur))) prev (rec (rest cur)))))
+      (rec alist))))
+
+(defun cached-ode-solution (the-ode init-t0 init-x0 init-stepsize)
+  (let ((stepsize (max *eps* init-stepsize))
+        (known-values (list (list init-t0 init-x0))))
+    ;(t1 0.1))
+    (flet ((append-to-values (rrest vals)
+             (let ((rst (cdr rrest)))
+               (setf (cdr rrest) (if rst (cons vals rst) vals)))))
+      (lambda (t1)
+        (let* ((closest (find-much t1 known-values))
+               (t0 (caar closest))
+               (x0 (cadar closest)))
+          (cond
+            ((num-equal t0 t1)
+             (print 'look-up)
+             x0)
+            ((<= (abs (- t0 t1)) stepsize)
+             (print 'single-step)
+             (append-to-values closest
+               (list t1 (runge-kutta-single-step the-ode x0 t0 (- t1 t0)))))
+            (t
+              (print 'full-step)
+              (append-to-values closest (mapcar
+                                          (lambda (&rest rest) (cons (setf t0 (+ t0 stepsize)) rest))
+                                          (runge-kutta the-ode x0 t0 t1 stepsize))))))))))
