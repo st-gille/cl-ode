@@ -1,6 +1,6 @@
 (defpackage :ode
   (:use :cl :cffi)
-  (:export :runge-kutta))
+  (:export :runge-kutta :newton-test))
 
 (in-package :ode)
 

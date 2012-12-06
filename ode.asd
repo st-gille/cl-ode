@@ -1,4 +1,5 @@
-(defsystem ode
+(asdf:defsystem ode
+ :depends-on (cffi)
  :description "Solve explicit, first order ODEs using Runge-Kutta methods."
  :version "0.1"
  :author "Stefan Gille <gille@numasoft.de>"
@@ -8,5 +9,3 @@
               (:file "runge-kutta")
               (:file "c-interface")))
 
-(require :asdf)
-(require :cffi)
