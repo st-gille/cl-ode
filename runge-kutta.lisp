@@ -16,20 +16,38 @@
 (defun make-autonomous (f)
     (lambda (x) (list 1 (funcall f (first x) (rest x)))))
 
-(defvar A '((0 0) (0.5 0.5)))
-(defvar b '(0.5 0.5))
-(defvar c '(0 1.0))
+(defstruct butcher-tableau
+  (matrix '((0)) :read-only t)
+  (weights '(1) :read-only t)
+  (time-coeffs '(0) :read-only t)
+  (is-implicit nil :read-only t))
 
-(setq A '((0 0) (0.5 0.5)))
-(setq b '(0.5 0.5))
-(setq c '(0 1.0))
+(defparameter *tableaus* (list (cons 'explicit-euler (make-butcher-tableau))
+                              (cons 'explicit-heun (make-butcher-tableau :matrix '((0) (1 0)) :weights '(0.5 0.5) :time-coeffs '(0 1)))))
 
-(setq A '((0)))
-(setq b '(1))
-(setq c '(0))
+(defvar *selected-tableau*)
+(defvar *A*)
+(defvar *b*)
+(defvar *c*)
 
-(defun weight-x (x k a)
-  (if (not k) x (mapcar (lambda (x y z)(+ x (* y z))) x k a)))
+(defun update-variables (selected-tableau)
+  (declare (type butcher-tableau selected-tableau))
+  (with-slots (matrix weights time-coeffs is-implicit) selected-tableau
+    (setf *A* matrix
+          *b* weights
+          *c* time-coeffs)))
+
+(defmacro with-runge-kutta (tableau &body body)
+  (let ((m (if (symbolp tableau) `(cdr (assoc (quote ,tableau) *tableaus*)) tableau)))
+    `(let ((*selected-tableau* ,m)
+           (*A* ) (*b*) (*c*))
+       (update-variables *selected-tableau*)
+       ,@body)))
+
+(defun eval-point (x k a)
+  (if k
+    (mapcar (lambda (x k a)(+ x (* k a))) x k a)
+    x))
 
 (defun solve-explicit-rks (f x0 t0 stepsize)
   (let* ((k nil)
@@ -38,12 +56,12 @@
                                (mapcar scale
                                        (funcall f
                                                 (+ t0 (* c stepsize))
-                                                (weight-x x0 k a))))))
-    (nconc k (mapcar substitution-step A c))))
+                                                (eval-point x0 k a))))))
+    (nconc k (mapcar substitution-step *A* *c*))))
 
 (defun runge-kutta-single-step (f x0 t0 stepsize)
   (let* ((ks (solve-explicit-rks f x0 t0 stepsize))
-         (bks (mapcar (lambda (bi k) (mapcar (lambda (ki) (* bi ki)) k)) b ks)))
+         (bks (mapcar (lambda (bi k) (mapcar (lambda (ki) (* bi ki)) k)) *b* ks)))
     (apply #'mapcar (cons #'+ (cons x0 bks)))))
 
 (defun make-discretization (t0 t1 stepsize)
