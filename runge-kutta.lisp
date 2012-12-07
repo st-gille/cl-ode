@@ -3,16 +3,30 @@
 (defvar *eps* 1.0e-14)
 (defvar *step* 1.0e-4)
 
-(defun central-diff-quot (f)
+(defun make-central-diff-quot (f)
   "Return new function approximating the derivative of input."
-  (lambda (x)
-    (let* ((x+ (+ x *step*))
-           (x- (- x *step*))
-           (fx+ (funcall f x+))
-           (fx- (funcall f x-))
-           (formula (lambda (fx fy) (* 0.5 (/ 1.0 *step*) (- fx fy)))))
+    (lambda (x) (central-diff-quot f x)))
+
+(defun central-diff-quot (f x)
+  (let* ((x+ (+ x *step*))
+         (x- (- x *step*))
+         (fx+ (funcall f x+))
+         (fx- (funcall f x-))
+         (formula (lambda (fx fy)  (* 0.5 (/ 1.0 *step*) (- fx fy)))))
+    (if (atom fx-)
+      (funcall formula fx+ fx-)
       (mapcar formula fx+ fx-))))
 
+(defun make-jacobian (f)
+  (lambda (x) (jacobian f x )))
+
+(defun jacobian (f x)
+  (let ((dim (length x)))
+    (loop for i below dim
+          collect (flet ((curry (y)
+                                (let ((tmp (modify-nth x y i)))
+                                  (funcall f tmp))))
+                    (central-diff-quot #'curry (nth i x))))))
 (defun make-autonomous (f)
     (lambda (x) (list 1 (funcall f (first x) (rest x)))))
 

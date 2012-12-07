@@ -24,6 +24,13 @@
   "Construct an alist of symbols and arguments, calling the function fname on each argument."
   `(list ,@(mapcar (lambda (x) `(cons (quote ,(car x)) (,fname ,@(second x)))) rest)))
 
+(defun modify-nth (lst new-val n)
+  (cond
+    ((null lst) (error "List too short."))
+    ((< n 0) (error "Cannot access negative positions."))
+    ((= n 0) (cons new-val (cdr lst)))
+    (t (cons (car lst) (modify-nth (cdr lst) new-val (1- n))))))
+
 (defun make-simple-list (dim &optional (formula #'+))
   (loop for j below dim collect (coerce (funcall formula j) 'double-float)))
 
