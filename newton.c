@@ -161,54 +161,54 @@ err_t newtons_method(dim_t dim,
     double norm_delta = 1.0;
 
     DEBUG_PRINT("x = ");
-    DEBUG(print_vector(dim, x);)
+    DEBUG(print_vector(dim, x));
     DEBUG_PRINT("t = ");
-    DEBUG(print_vector(dim, t);)
-        int iter;
+    DEBUG(print_vector(dim, t));
+    int iter;
     for (iter = 1; iter <= itmax; ++iter)
     {
         DEBUG_PRINT("----------- step %d----------------\n", iter);
 
         f(x, t, data.s);
         DEBUG_PRINT("|f(x,t)| = %e, ", norm2(dim, data.s));
-        DEBUG(print_vector(dim, data.s);)
+        DEBUG(print_vector(dim, data.s));
 
-            if(norm2(dim, data.s) < eps)
-            {
-                free_newton_data(&data);
-                return SUCCESS;
-            }
+        if(norm2(dim, data.s) < eps)
+        {
+            free_newton_data(&data);
+            return SUCCESS;
+        }
 
         df(x, t, data.A);
         DEBUG_PRINT("A = ");
-        DEBUG(print_matrix(dim, dim, (const_mat) data.A);)
-            if (lr_decomp(dim, data.A, data.pivot))
-            {
-                free_newton_data(&data);
-                return FAILURE;
-            }
+        DEBUG(print_matrix(dim, dim, (const_mat) data.A));
+        if (lr_decomp(dim, data.A, data.pivot))
+        {
+            free_newton_data(&data);
+            return FAILURE;
+        }
         lr_solve(dim, (const_mat) data.A, data.s, data.d, data.pivot);
 
         norm_delta = norm2(dim, data.d);
         DEBUG_PRINT("|delta| = %e, delta = ", norm_delta);
-        DEBUG(print_vector(dim, data.d);)
+        DEBUG(print_vector(dim, data.d));
 
-            if (isnan(norm_delta))
-            {
-                free_newton_data(&data);
-                return FAILURE;
-            }
+        if (isnan(norm_delta))
+        {
+            free_newton_data(&data);
+            return FAILURE;
+        }
 
         for (j = 0; j < dim; ++j)
             x[j] -= data.d[j];
         DEBUG_PRINT("x = ");
-        DEBUG(print_vector(dim, x);)
+        DEBUG(print_vector(dim, x));
 
-            if (norm_delta < eps)
-            {
-                free_newton_data(&data);
-                return SUCCESS;
-            }
+        if (norm_delta < eps)
+        {
+            free_newton_data(&data);
+            return SUCCESS;
+        }
     }
 
     free_newton_data(&data);
