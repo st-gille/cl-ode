@@ -16,31 +16,39 @@
 (defun make-autonomous (f)
     (lambda (x) (list 1 (funcall f (first x) (rest x)))))
 
-(defstruct butcher-tableau
-  (matrix '((0)) :read-only t)
-  (weights '(1) :read-only t)
-  (time-coeffs '(0) :read-only t)
-  (is-implicit nil :read-only t))
+(defstruct (butcher-tableau
+  (:constructor make-butcher (&optional (matrix '((0))) (weights '(1)) (time-coeffs '(0)) (is-implicit nil))))
+  (matrix :read-only)
+  (weights :read-only)
+  (time-coeffs :read-only)
+  (is-implicit :read-only))
 
-(defparameter *tableaus* (list (cons 'explicit-euler (make-butcher-tableau))
-                              (cons 'explicit-heun (make-butcher-tableau :matrix '((0) (1 0)) :weights '(0.5 0.5) :time-coeffs '(0 1)))))
+(defparameter *tableaus*
+  (make-alist-calling make-butcher
+    (explicit-euler)
+     (implicit-euler ('((1)) '(1) '(1) t))
+     (explicit-heun ('((0) (1 0)) '(0.5 0.5) '(0 1)))
+     (classic ('(() (0.5) (0 0.5) (0 0 1)) '(1/6 1/3 1/3 1/6) '(0 0.5 0.5 1)))
+     (implicit-trapezoid ('((0 0) (0.5 0.5)) '(0.5 0.5) '(0 1) t))))
 
 (defvar *selected-tableau*)
 (defvar *A*)
 (defvar *b*)
 (defvar *c*)
+(defvar *is-implicit*)
 
 (defun update-variables (selected-tableau)
   (declare (type butcher-tableau selected-tableau))
   (with-slots (matrix weights time-coeffs is-implicit) selected-tableau
     (setf *A* matrix
           *b* weights
-          *c* time-coeffs)))
+          *c* time-coeffs
+          *is-implicit* is-implicit)))
 
 (defmacro with-runge-kutta (tableau &body body)
   (let ((m (if (symbolp tableau) `(cdr (assoc (quote ,tableau) *tableaus*)) tableau)))
     `(let ((*selected-tableau* ,m)
-           (*A* ) (*b*) (*c*))
+           (*A* ) (*b*) (*c*) (*is-implicit*))
        (update-variables *selected-tableau*)
        ,@body)))
 

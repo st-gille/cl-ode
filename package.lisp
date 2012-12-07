@@ -20,6 +20,9 @@
             (wrap-binds ,form ,(rest bindings) ,@body))
     `(progn ,@body)))
 
+(defmacro make-alist-calling (fname &rest rest)
+  "Construct an alist of symbols and arguments, calling the function fname on each argument."
+  `(list ,@(mapcar (lambda (x) `(cons (quote ,(car x)) (,fname ,@(second x)))) rest)))
 
 (defun make-simple-list (dim &optional (formula #'+))
   (loop for j below dim collect (coerce (funcall formula j) 'double-float)))
