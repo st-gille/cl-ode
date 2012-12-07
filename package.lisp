@@ -20,8 +20,6 @@
             (wrap-binds ,form ,(rest bindings) ,@body))
     `(progn ,@body)))
 
-(defun wrap-binds-test ()
- (macroexpand '(wrap-binds with-something ((var1 init1) (var2 init2)) form1 form2)))
 
 (defun make-simple-list (dim &optional (formula #'+))
   (loop for j below dim collect (coerce (funcall formula j) 'double-float)))
