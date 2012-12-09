@@ -77,12 +77,15 @@
           *c* time-coeffs
           *is-implicit* is-implicit)))
 
-(defmacro with-runge-kutta (tableau &body body)
+(defmacro with-tableau (tableau &body body)
+  "Create context that defines a specific butcher tableau. Pass either an object of type butcher-tableau or a symbol. If passed a symbol, it's associated tableau will be retrieved from a pre-defined list."
   (let1 (m (if (symbolp tableau) `(cdr (assoc (quote ,tableau) *tableaus*)) tableau))
-    `(let ((*selected-tableau* ,m)
-           (*A* ) (*b*) (*c*) (*is-implicit*))
-       (update-variables *selected-tableau*)
-       ,@body)))
+    `(let1 (*selected-tableau* ,m)
+       (if (any-p *selected-tableau* null (not butcher-tableau-p))
+         (error "Not a valid butcher-tableau: ~A~%" *selected-tableau*))
+       (let ((*A* ) (*b*) (*c*) (*is-implicit*))
+         (update-variables *selected-tableau*)
+         ,@body))))
 
 (defun dot-product (u v)
   (apply #'+ (mapcar #'* u v)))

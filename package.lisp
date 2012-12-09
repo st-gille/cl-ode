@@ -4,6 +4,27 @@
 
 (in-package :ode)
 
+(defun nested (lst)
+  (if (null (rest lst))
+    (car lst)
+    (list (car lst) (nested (rest lst)))))
+
+(defun apply-predicate (object pred)
+  (if (atom pred)
+    (list pred object)
+    (nested (append pred (list object)))))
+
+(defmacro apply-helper (key object &rest predicates)
+  (once-only (object)
+    (let1 (tests (mapcar (curry #'apply-predicate object) predicates))
+      `(,key ,@tests))))
+
+(defmacro all-p (object &rest predicates)
+  `(apply-helper and ,object ,@predicates))
+
+(defmacro any-p (object &rest predicates)
+  `(apply-helper or ,object ,@predicates))
+
 (defmacro aif (test-form then-form &optional else-form)
   `(let ((it ,test-form))
         (if it ,then-form ,else-form)))
