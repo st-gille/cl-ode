@@ -1,11 +1,15 @@
 (defpackage :ode
-  (:use :cl :cffi)
+  (:use :cl :cffi :alexandria)
   (:export :runge-kutta :newton-test))
 
 (in-package :ode)
 
-(defmacro with-gensyms ((&rest names) &body body)
-  `(let ,(loop for n in names collect `(,n (gensym)))
+(defmacro aif (test-form then-form &optional else-form)
+  `(let ((it ,test-form))
+        (if it ,then-form ,else-form)))
+
+(defmacro let1 (binding &body body)
+  `(let (,binding)
      ,@body))
 
 (defmacro with-gensym-if-not (cond (&rest bindings) &body body)
@@ -41,3 +45,16 @@
   (make-array (list (length list)
                     (length (first list)))
               :initial-contents list))
+
+(defun split (list n)
+  (let ((res)
+        (tmp))
+    (loop for item in list
+          for i from 1
+          do (push item tmp)
+          when (= n i)
+          do (progn
+                    (push (nreverse tmp) res)
+                    (setq i 0)
+                    (setf tmp nil)))
+    (nreverse res)))

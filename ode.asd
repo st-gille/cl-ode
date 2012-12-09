@@ -6,6 +6,6 @@
  :licence "Public Domain"
  :serial t
  :components ((:file "package")
-              (:file "runge-kutta")
-              (:file "c-interface")))
+              (:file "c-interface")
+              (:file "runge-kutta")))
 

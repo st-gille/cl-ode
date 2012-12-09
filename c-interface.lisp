@@ -20,6 +20,12 @@
 (defcfun "newtons_method" :int8
          (dim :uint64)
          (x (:pointer :double))
+         (func :pointer)
+         (diff_func :pointer))
+
+(defcfun "newtons_method_impicit" :int8
+         (dim :uint64)
+         (x (:pointer :double))
          (y (:pointer :double))
          (func :pointer)
          (diff_func :pointer))
@@ -51,6 +57,18 @@
       (set-c-vector x (make-array dim :initial-contents (make-simple-list dim (lambda (i) (+ 2 (* i i))))))
       (print-vector dim x))))
 (set-c-vector-test)
+
+(defmacro make-callback (name dim f)
+  `(defcallback ,name :void ((py :pointer) (pres ::pointer))
+       (let* ((y (convert-from-c-vector ,dim py))
+         (res (funcall ,f  y)))
+         (set-c-vector pres res))))
+
+(defmacro make-callback-2d (name dim f)
+  `(defcallback ,name :void ((py :pointer) (ppres ::pointer))
+            (let* ((y (convert-from-c-vector ,dim py))
+                   (res (funcall ,f y)))
+              (set-c-matrix ppres res))))
 
 (defmethod set-c-matrix (A rows)
   "Row-wise initialization of c-style matrices."
@@ -102,7 +120,7 @@
   (with-foreign-objects ((y :double) (x :double))
     (set-c-vector y '(0.6d0))
     (set-c-vector x '(1.5d0))
-    (newtons-method 1 y x (get-callback 'cb-f) (get-callback 'df))
+    (newtons-method-imlicit 1 y x (get-callback 'cb-f) (get-callback 'df))
     (print-vector 1 y)))
 
 (defun lr-test (rows)

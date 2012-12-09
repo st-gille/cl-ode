@@ -45,6 +45,11 @@ void lr_solve(dim_t dim, const double * const * LR, const double *b, double *x, 
 
 err_t newtons_method(dim_t dim,
         double* x,
+        void (*f)(const double*, double*),
+        void (*df)(const double*, double**));
+
+err_t newtons_method_implicit(dim_t dim,
+        double* x,
         const double* t,
         void (*f)(const double*, const double*, double*),
         void (*df)(const double*, const double*, double**));

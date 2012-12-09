@@ -8,16 +8,45 @@
 #   define DEBUG(X) X
 #endif
 
+#define DEFINE_PRINT_VECTOR_T(type, suffix, format)             \
+    void print_vector##suffix(dim_t dim, const type *x)         \
+{                                                           \
+    printf("[");                                            \
+    if(x && dim > 0)                                        \
+    {                                                       \
+        for(dim_t i = 0; i < dim; ++i)                      \
+        printf(format, x[i]);                               \
+    }                                                       \
+    printf(" ]\n");                                         \
+}
+
+DEFINE_PRINT_VECTOR_T(int, _i, " %d")
+DEFINE_PRINT_VECTOR_T(dim_t, _u, " %u")
+DEFINE_PRINT_VECTOR_T(double, , " %e")
+DEFINE_PRINT_VECTOR_T(double *, _x, " %x")
+
+#undef DEFINE_PRINT_VECTOR_T
+
+void print_matrix(dim_t rows, dim_t cols, const_mat A)
+{
+    for(dim_t row = 0; row < rows; ++row)
+        print_vector(cols, A[row]);
+}
+
 double norm2sqr(dim_t dim, const double *x)
 {
     double tmp = 0.0;
     for (dim_t i = 0; i < dim; ++i)
         tmp += x[i] * x[i];
+    DEBUG_PRINT("norm2sqr: dim = %u, res = %f, x =", dim, tmp);
+
     return tmp;
 }
 
 double norm2(dim_t dim, const double *x)
 {
+    DEBUG_PRINT("in norm2: dim = %u, x = ", dim);
+    DEBUG(print_vector(dim, x));
     return sqrt(norm2sqr(dim, x));
 }
 
@@ -88,30 +117,34 @@ void lr_solve(dim_t dim, const double * const * LR, const double *b, double *x, 
     }
 
     // backward substitution
-    for (i = dim - 1; ; --i)
+    i = dim;
+    do
     {
+        --i;
         tmp = x[i];
         for (j = dim - 1; j > i; --j)
             tmp -= (LR[i][j] * x[j]);
         x[i] = tmp / LR[i][i];
 
-        if (i == 0)
-            break;
-    }
+    } while(i != 0);
 }
 
-void matrix_alloc(dim_t rows, dim_t cols, double*** data)
+void *matrix_alloc(dim_t rows, dim_t cols, dim_t size)
 {
-    DEBUG_PRINT("in alloc: %u %u %#x\n", rows, cols, data);
-    *data = (double **) malloc(rows * sizeof(double*));
+    DEBUG_PRINT("in alloc: %u %u %#x\n", rows, cols);
+    void **data = malloc(rows * sizeof(void*));
+    void *tmp = malloc(rows * cols * size);
     for (dim_t row = 0; row < rows; ++row)
-        **data = malloc(cols * sizeof(double));
+    {
+        data[row] = tmp;
+        tmp += cols * size;
+    }
+    return data;
 }
 
-void matrix_dealloc(dim_t n, double ** data)
+void matrix_dealloc(dim_t n, void **data)
 {
-    for (dim_t i = 0; i < n; ++i)
-        free(data[i]);
+    free(*data);
     free(data);
 }
 
@@ -127,24 +160,88 @@ void alloc_newton_data(struct newton_data_t* data, dim_t dim)
     data->dim = dim;
     DEBUG_PRINT("in alloc_newton_data\n");
     DEBUG_PRINT("data: %#x\n", data);
-    matrix_alloc(dim, dim, &(data->A));
-    DEBUG_PRINT("alive\n");
+    data->A = matrix_alloc(dim, dim, sizeof(double));
     data->d = malloc(sizeof(double) * dim * 2);
-    DEBUG_PRINT("alive\n");
     data->s = data->d + dim;
-    DEBUG_PRINT("alive\n");
     data->pivot = malloc(sizeof(dim_t) * dim);
-    DEBUG_PRINT("alive\n");
 }
 
 void free_newton_data(struct newton_data_t* data)
 {
-    matrix_dealloc(data->dim, data->A);
+    matrix_dealloc(data->dim, (void **) data->A);
     free(data->d);
     free(data->pivot);
 }
 
 err_t newtons_method(dim_t dim,
+        double* x,
+        void (*f)(const double*, double*),
+        void (*df)(const double*, double**))
+{
+    DEBUG_PRINT("in newtons_method: (dim x f df) = (%d %#x %#X %#X)\n", dim, x, f, df);
+    struct newton_data_t data;
+    alloc_newton_data(&data, dim);
+    DEBUG_PRINT("allocated newton data: %#x\n", &data);
+
+    dim_t j;
+    const int itmax = 50;
+    const double eps = 1.0e-12;
+    double norm_delta = 1.0;
+
+    DEBUG_PRINT("x = ");
+    DEBUG(print_vector(dim, x));
+    int iter;
+    for (iter = 1; iter <= itmax; ++iter)
+    {
+        DEBUG_PRINT("----------- step %d----------------\nf(x) = ", iter);
+
+        f(x, data.s);
+        DEBUG(print_vector(dim, data.s));
+        DEBUG_PRINT("|f(x)| = %e, ", norm2(dim, data.s));
+
+        if(norm2(dim, data.s) < eps)
+        {
+            free_newton_data(&data);
+            return SUCCESS;
+        }
+
+        df(x, data.A);
+        DEBUG_PRINT("A = ");
+        DEBUG(print_matrix(dim, dim, (const_mat) data.A));
+        if (lr_decomp(dim, data.A, data.pivot))
+        {
+            free_newton_data(&data);
+            return FAILURE;
+        }
+        lr_solve(dim, (const_mat) data.A, data.s, data.d, data.pivot);
+
+        norm_delta = norm2(dim, data.d);
+        DEBUG_PRINT("|delta| = %e, delta = ", norm_delta);
+        DEBUG(print_vector(dim, data.d));
+
+        if (isnan(norm_delta))
+        {
+            free_newton_data(&data);
+            return FAILURE;
+        }
+
+        for (j = 0; j < dim; ++j)
+            x[j] -= data.d[j];
+        DEBUG_PRINT("x = ");
+        DEBUG(print_vector(dim, x));
+
+        if (norm_delta < eps)
+        {
+            free_newton_data(&data);
+            return SUCCESS;
+        }
+    }
+
+    free_newton_data(&data);
+    return FAILURE;
+}
+
+err_t newtons_method_implicit(dim_t dim,
         double* x,
         const double* t,
         void (*f)(const double*, const double*, double*),
@@ -210,34 +307,8 @@ err_t newtons_method(dim_t dim,
             return SUCCESS;
         }
     }
-
     free_newton_data(&data);
     return FAILURE;
-}
-
-#define DEFINE_PRINT_VECTOR_T(type, suffix, format)             \
-    void print_vector##suffix(dim_t dim, const type *x)         \
-{                                                           \
-    printf("[");                                            \
-    if(x && dim > 0)                                        \
-    {                                                       \
-        printf(format, x[0]);                               \
-        for(dim_t i = 1; i < dim; ++i)                      \
-        printf(format, x[i]);                               \
-    }                                                       \
-    printf(" ]\n");                                         \
-}
-
-DEFINE_PRINT_VECTOR_T(int, _i, " %d")
-DEFINE_PRINT_VECTOR_T(dim_t, _u, " %u")
-DEFINE_PRINT_VECTOR_T(double, , " %e")
-
-#undef DEFINE_PRINT_VECTOR_T
-
-void print_matrix(dim_t rows, dim_t cols, const_mat A)
-{
-    for(dim_t row = 0; row < rows; ++row)
-        print_vector(cols, A[row]);
 }
 
 #undef DEBUG_PRINT
