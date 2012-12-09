@@ -38,11 +38,18 @@
 (defun make-autonomous (f)
   (lambda (x) (list 1 (funcall f (first x) (rest x)))))
 
+(defun null-after (vec n)
+  (or (< (length vec) n)
+      (every #'zerop (nthcdr n vec))))
+
+(defun lower-triangular-p (matrix)
+  (every #'null-after matrix (loop for i below (length matrix) collect i)))
+
 (defstruct (butcher-tableau
              (:constructor make-butcher (&optional (matrix '((0)))
                                                    (weights '(1))
                                                    (time-coeffs '(0))
-                                                   (is-implicit nil))))
+                                                   (is-implicit (not (lower-triangular-p matrix))))))
   (matrix :read-only)
   (weights :read-only)
   (time-coeffs :read-only)
@@ -52,7 +59,7 @@
   (make-alist-calling make-butcher
     (explicit-euler)
     (implicit-euler ('((1)) '(1) '(1) t))
-    (explicit-heun ('((0) (1 0)) '(0.5 0.5) '(0 1)))
+    (explicit-heun ('(() (1 0)) '(0.5 0.5) '(0 1)))
     (classic ('(() (0.5) (0 0.5) (0 0 1)) '(1/6 1/3 1/3 1/6) '(0 0.5 0.5 1)))
     (implicit-trapezoid ('((0 0) (0.5 0.5)) '(0.5 0.5) '(0 1) t))))
 
