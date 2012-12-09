@@ -1,47 +1,5 @@
 (in-package :ode)
 
-(defun num-equal (a b)
-  (and a b (< (abs (- a b)) *eps*)))
-
-(defvar *eps* 1.0e-14)
-(defvar *step* 1.0e-4)
-
-(defun make-central-diff-quot (f)
-  "Return new function approximating the derivative of input."
-  (lambda (x) (central-diff-quot f x)))
-
-(defun central-diff-quot (f x)
-  (let* ((x+ (+ x *step*))
-         (x- (- x *step*))
-         (fx+ (funcall f x+))
-         (fx- (funcall f x-))
-         (formula (lambda (fx fy)  (* 0.5 (/ 1.0 *step*) (- fx fy)))))
-    (if (atom fx-)
-      (funcall formula fx+ fx-)
-      (mapcar formula fx+ fx-))))
-
-(defun swap-matrix-layout (matrix)
-  (apply #'mapcar (cons #'list matrix)))
-
-(defun jacobian (f x)
-  (let* ((dim (length x))
-         (df-by-cols (loop for i below dim
-                           collect (flet ((curry-at-nth (y)
-                                                        (let1 (tmp (modify-nth x y i))
-                                                          (funcall f tmp))))
-                                     (central-diff-quot #'curry-at-nth (nth i x))))))
-    (swap-matrix-layout df-by-cols)))
-
-(defun make-jacobian (f)
-  (lambda (x) (jacobian f x)))
-
-(defun shorter-or-null-after (vec n)
-  (or (< (length vec) n)
-      (every #'zerop (nthcdr n vec))))
-
-(defun lower-triangular-p (matrix)
-  (every #'shorter-or-null-after matrix (loop for i below (length matrix) collect i)))
-
 (defstruct (butcher-tableau
              (:constructor make-butcher (&optional (matrix '((0)))
                                                    (weights '(1))
@@ -93,9 +51,6 @@
        (let ((*A* ) (*b*) (*c*) (*is-implicit*))
          (update-variables *selected-tableau*)
          ,@body))))
-
-(defun dot-product (u v)
-  (apply #'+ (mapcar #'* u v)))
 
 (defun eval-point (x k aj)
   (if k
@@ -173,15 +128,6 @@
         finally (return (aif (ensure-last-step ode x (- next-t stepsize) t1)
                           it
                           x))))
-
-(defun make-graph (f t0 t1 stepsize)
-  (let ((ft0 (funcall f t0)))
-    (if (> t0 t1)
-      (list ft0)
-      (cons ft0 (eval-f f (+ t0 stepsize) t1 stepsize)))))
-
-(defun nassoc (value alist)
-  (assoc value alist :test #'num-equal))
 
 (defun find-last-smaller (item alist)
   (loop for i = alist
