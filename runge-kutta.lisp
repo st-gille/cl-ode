@@ -20,9 +20,6 @@
       (funcall formula fx+ fx-)
       (mapcar formula fx+ fx-))))
 
-(defun make-jacobian (f)
-  (lambda (x) (jacobian f x)))
-
 (defun swap-matrix-layout (matrix)
   (apply #'mapcar (cons #'list matrix)))
 
@@ -35,8 +32,8 @@
                                      (central-diff-quot #'curry-at-nth (nth i x))))))
     (swap-matrix-layout df-by-cols)))
 
-(defun make-autonomous (f)
-  (lambda (x) (list 1 (funcall f (first x) (rest x)))))
+(defun make-jacobian (f)
+  (lambda (x) (jacobian f x)))
 
 (defun null-after (vec n)
   (or (< (length vec) n)
