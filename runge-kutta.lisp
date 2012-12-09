@@ -54,11 +54,18 @@
 
 (defparameter *tableaus*
   (make-alist-calling make-butcher
-    (explicit-euler)
-    (implicit-euler ('((1)) '(1) '(1) t))
-    (explicit-heun ('(() (1 0)) '(0.5 0.5) '(0 1)))
-    (classic ('(() (0.5) (0 0.5) (0 0 1)) '(1/6 1/3 1/3 1/6) '(0 0.5 0.5 1)))
-    (implicit-trapezoid ('((0 0) (0.5 0.5)) '(0.5 0.5) '(0 1) t))))
+    (:explicit-euler)
+    (:implicit-euler
+      ('((1)) '(1) '(1) t))
+    (:explicit-heun
+      ('(() (1 0)) '(0.5 0.5) '(0 1) nil))
+    (:classic
+      ('(() (0.5) (0 0.5) (0 0 1)) '(1/6 1/3 1/3 1/6) '(0 0.5 0.5 1) nil))
+    (:implicit-trapezoid
+      ('((0 0) (0.5 0.5)) '(0.5 0.5) '(0 1) t))))
+
+;define all method names as keywords
+(mapcar #'make-keyword (mapcar #'string (mapcar #'first *tableaus*)))
 
 (defvar *selected-tableau*)
 (defvar *A*)
