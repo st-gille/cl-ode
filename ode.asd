@@ -7,5 +7,6 @@
  :serial t
  :components ((:file "package")
               (:file "c-interface")
-              (:file "runge-kutta")))
+              (:file "runge-kutta")
+              (:file "examples")))
 

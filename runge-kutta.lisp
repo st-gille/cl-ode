@@ -1,6 +1,5 @@
 (in-package :ode)
 
-
 (defun num-equal (a b)
   (and a b (< (abs (- a b)) *eps*)))
 
@@ -100,17 +99,6 @@
           do (let ((ki (list (scaled-ode-eval ode stepsize ai ci k t0 x0))))
                (appendf k ki)))
     k))
-
-(defun newton-solver (nleqs len &optional (initial-guess (make-array len
-                                                                     :element-type 'double-float
-                                                                     :initial-element 0.0d0 )))
-  (with-foreign-object (k :double len)
-    (set-c-vector k initial-guess)
-    (make-callback c-f len nleqs)
-    (make-callback-2d c-df len (make-jacobian nleqs))
-    (when (= 1 (newtons-method len k (get-callback 'c-f) (get-callback 'c-df)))
-      (error "cant solve system"))
-    (convert-from-c-vector len k)))
 
 (defun solve-implicit-rks (ode x0 t0 stepsize)
   (let* ((dim (length x0))

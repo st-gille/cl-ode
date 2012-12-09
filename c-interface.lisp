@@ -82,6 +82,18 @@
         do (loop for j below (array-dimension rows 1)
                  do (setf (mem-aref (mem-aref A :pointer i) :double j) (aref rows i j)))))
 
+(defun newton-solver (nleqs len
+                            &optional (initial-guess (make-array len
+                                                                 :element-type 'double-float
+                                                                 :initial-element 0.0d0 )))
+  (with-foreign-object (k :double len)
+    (set-c-vector k initial-guess)
+    (make-callback c-f len nleqs)
+    (make-callback-2d c-df len (make-jacobian nleqs))
+    (when (= 1 (newtons-method len k (get-callback 'c-f) (get-callback 'c-df)))
+      (error "cant solve system"))
+    (convert-from-c-vector len k)))
+
 (defun alloc-c-matrix (A rows cols &key initial-contents (type :double))
   "Allocate enough memory to hold <rows>*<cols> objects of foreign type <type>. Row-wise initialization possible."
   (loop for i below (if rows rows (length initial-contents))
@@ -104,35 +116,3 @@
      (alloc-c-matrix ,name ,g-rows ,g-cols ,@(if (not have-dims) `(:initial-contents ,g-contents)) :type ,type)
      ,@body
      (free-c-matrix ,name ,g-rows)))))
-
-(defcallback cb-f :void ((py :pointer) (px :pointer) (pres :pointer))
-  (let ((y (mem-ref py :double))
-        (x (mem-ref px :double)))
-    (setf (mem-ref pres :double) (- 1 (* x (exp y))))))
-
-(defcallback df :void ((py :pointer) (px :pointer) (ppres ::pointer))
-  (let ((y (mem-ref py :double))
-        (x (mem-ref px :double))
-        (pres (mem-ref ppres :pointer)))
-    (setf (mem-ref pres :double) (- (* x (exp y))))))
-
-(defun newton-test ()
-  (with-foreign-objects ((y :double) (x :double))
-    (set-c-vector y '(0.6d0))
-    (set-c-vector x '(1.5d0))
-    (newtons-method-imlicit 1 y x (get-callback 'cb-f) (get-callback 'df))
-    (print-vector 1 y)))
-
-(defun lr-test (rows)
-  (with-foreign-objects ((x :double rows) (b :double rows) (pivot :uint64 rows))
-    (with-matrix (A :initial-contents (make-simple-matrix rows rows (lambda (i j)(declare (ignore i j)) (random 100))))
-      (print-matrix rows rows A)
-      (if (= 1 (lr-decomp rows A pivot)) (print "unheil!\n")
-        (progn
-          (print-matrix rows rows A)
-          (print-vector-u rows pivot )
-          (set-c-vector b (make-simple-list rows (lambda (i)(declare (ignore i)) (random 100))))
-          (print-vector rows b)
-          (print-vector rows x)
-          (lr-solve rows A b x pivot)
-          (print-vector rows x))))))
