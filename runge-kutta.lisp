@@ -35,12 +35,12 @@
 (defun make-jacobian (f)
   (lambda (x) (jacobian f x)))
 
-(defun null-after (vec n)
+(defun shorter-or-null-after (vec n)
   (or (< (length vec) n)
       (every #'zerop (nthcdr n vec))))
 
 (defun lower-triangular-p (matrix)
-  (every #'null-after matrix (loop for i below (length matrix) collect i)))
+  (every #'shorter-or-null-after matrix (loop for i below (length matrix) collect i)))
 
 (defstruct (butcher-tableau
              (:constructor make-butcher (&optional (matrix '((0)))
@@ -75,7 +75,10 @@
           *is-implicit* is-implicit)))
 
 (defmacro with-tableau (tableau &body body)
-  "Create context that defines a specific butcher tableau. Pass either an object of type butcher-tableau or a symbol. If passed a symbol, it's associated tableau will be retrieved from a pre-defined list."
+  "Create context that defines a specific butcher tableau.
+  Pass either an object of type butcher-tableau or a symbol.
+  If passed a symbol, it's associated tableau will
+  be retrieved from a pre-defined list."
   (let1 (m (if (symbolp tableau) `(cdr (assoc (quote ,tableau) *tableaus*)) tableau))
     `(let1 (*selected-tableau* ,m)
        (if (any-p *selected-tableau* null (not butcher-tableau-p))
