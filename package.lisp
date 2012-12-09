@@ -1,29 +1,8 @@
 (defpackage :ode
   (:use :cl :cffi :alexandria)
-  (:export :runge-kutta :newton-test))
+  (:export :with-tableau :butcher-tableau))
 
 (in-package :ode)
-
-(defun nested (lst)
-  (if (null (rest lst))
-    (car lst)
-    (list (car lst) (nested (rest lst)))))
-
-(defun apply-predicate (object pred)
-  (if (atom pred)
-    (list pred object)
-    (nested (append pred (list object)))))
-
-(defmacro apply-helper (key object &rest predicates)
-  (once-only (object)
-    (let1 (tests (mapcar (curry #'apply-predicate object) predicates))
-      `(,key ,@tests))))
-
-(defmacro all-p (object &rest predicates)
-  `(apply-helper and ,object ,@predicates))
-
-(defmacro any-p (object &rest predicates)
-  `(apply-helper or ,object ,@predicates))
 
 (defmacro aif (test-form then-form &optional else-form)
   `(let ((it ,test-form))
@@ -32,6 +11,25 @@
 (defmacro let1 (binding &body body)
   `(let (,binding)
      ,@body))
+
+(defun nest (lst)
+  (if (null (rest lst))
+    (car lst)
+    (list (car lst) (nest (rest lst)))))
+
+(defun apply-predicate (object pred)
+  (if (atom pred)
+    (list pred object)
+    (nest (append pred (list object)))))
+
+(defmacro define-for-predicates (name cnd)
+  `(defmacro ,name (object &rest predicates)
+     (once-only (object)
+       (let1 (tests (mapcar (curry #'apply-predicate object) predicates))
+         (cons (quote ,cnd) tests)))))
+
+(define-for-predicates all-p and)
+(define-for-predicates any-p or)
 
 (defmacro with-gensym-if-not (cond (&rest bindings) &body body)
   (if cond
