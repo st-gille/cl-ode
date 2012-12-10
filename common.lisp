@@ -1,5 +1,96 @@
 (in-package :ode)
 
+(defmacro aif (test-form then-form &optional else-form)
+  "Anaphoric if. See Let over Lambda."
+  `(let ((it ,test-form))
+        (if it ,then-form ,else-form)))
+
+(defmacro let1 (binding &body body)
+  "Save two parens when using only one binding. From Land of Lisp."
+  `(let (,binding)
+     ,@body))
+
+(defun nest (lst)
+  "Convert a list to a nested list, like
+  (nest '(a b c d)) ==> (A (B (C D)))."
+  (if (null (rest lst))
+    (car lst)
+    (list (car lst) (nest (rest lst)))))
+
+(defun apply-predicate (object pred)
+  (if (atom pred)
+    (list pred object)
+    (nest (append pred (list object)))))
+
+(defmacro define-for-predicates (name cnd doc)
+  `(defmacro ,name (object &rest predicates)
+     ,doc
+     (once-only (object)
+       (let1 (tests (mapcar (curry #'apply-predicate object) predicates))
+         (cons (quote ,cnd) tests)))))
+
+(define-for-predicates all-p and
+  "Check if every predicate in <predicates> is true for <object>")
+
+(define-for-predicates any-p or
+  "Check if any predicate in <predicates> is true for <object>")
+
+(defmacro with-gensym-if-not (cond (&rest bindings) &body body)
+  (if cond
+    `(let ,(loop for (var init-form) in bindings collect `(,var (,init-form))) ,@body)
+    `(with-gensyms ,(mapcar #'car bindings) ,@body)))
+
+(defmacro wrap-binds (form bindings &body body)
+  "Nest all bindings in <bindings> within <form>."
+  (if bindings
+    `(,form ,(first bindings)
+            (wrap-binds ,form ,(rest bindings) ,@body))
+    `(progn ,@body)))
+
+(defmacro make-alist-calling (fname &rest rest)
+  "Construct an alist of symbols and arguments,
+  calling the function fname on each argument."
+  `(list ,@(mapcar (lambda (x)
+                     `(cons (quote ,(car x)) (,fname ,@(second x))))
+                   rest)))
+
+(defun modify-nth (lst new-val n)
+  "Make a list with a fresh cell at the n-th position."
+  ;This implies that all previous cells are fresh, too.
+  (cond
+    ((null lst) (error "List too short."))
+    ((< n 0) (error "Cannot access negative positions."))
+    ((= n 0) (cons new-val (cdr lst)))
+    (t (cons (car lst) (modify-nth (cdr lst) new-val (1- n))))))
+
+(defun make-simple-list (dim &optional (formula #'+))
+  "Make a list of length <dim> with elements of type double-float determined by <formula>.
+  The position in the list is passed to <formula>."
+  (loop for j below dim collect (coerce (funcall formula j) 'double-float)))
+
+(defun make-simple-matrix (rows cols &optional (formula #'+))
+  "Make a list of length <rows>, each element being a list of length <cols>,
+  which in turn has elements of type double-float determined by <formula>.
+  The current row and column is passed to <formula>."
+  (loop for i below rows collect (loop for j below cols collect (coerce (funcall formula i j) 'double-float))))
+
+(defun list-to-2d-array (list)
+  "Due to http://stackoverflow.com/questions/9549568/."
+  (make-array (list (length list)
+                    (length (first list)))
+              :initial-contents list))
+
+(defun take-n (n lst)
+  (loop for i below n
+        for item in lst
+        collect item))
+
+(defun split-n (n lst)
+  "Split in parts of length <n>."
+  (if lst
+    (cons (take-n n lst)
+          (split-n n (nthcdr n lst)))))
+
 (defparameter *eps* 1.0e-14 "Used for numeric equality.")
 (defparameter *step* 1.0e-4 "Used as a base stepsize.")
 

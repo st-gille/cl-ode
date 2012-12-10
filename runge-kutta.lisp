@@ -23,7 +23,7 @@
     (:implicit-trapezoid
       ('((0 0) (0.5 0.5)) '(0.5 0.5) '(0 1) t))))
 
-;define all method names as keywords
+;define known tableau names as keywords
 (mapcar #'make-keyword (mapcar #'string (mapcar #'first *tableaus*)))
 
 (defvar *selected-tableau*)
@@ -39,6 +39,8 @@
           *b* weights
           *c* time-coeffs
           *is-implicit* is-implicit)))
+
+(update-variables (make-butcher))
 
 (defmacro with-tableau (tableau &body body)
   "Create context that defines a specific butcher tableau.
@@ -93,11 +95,11 @@
                        *A*
                        *c*))
              (implicit-system (k-flat)
-               (let1 (k (split k-flat dim))
+               (let1 (k (split-n dim k-flat))
                  (mapcan #'eqs-for-ki
                          k
                          (ode-system-for-step k)))))
-      (split (newton-solver #'implicit-system len) dim))))
+      (split-n dim (newton-solver #'implicit-system len)))))
 
 (defun runge-kutta-single-step (f x0 t0 stepsize)
   (let* ((solver (if *is-implicit* #'solve-implicit-rks #'solve-explicit-rks))

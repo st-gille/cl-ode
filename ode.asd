@@ -6,6 +6,7 @@
  :licence "Public Domain"
  :serial t
  :components ((:file "package")
+              (:file "common")
               (:file "c-interface")
               (:file "runge-kutta")
               (:file "examples")))
