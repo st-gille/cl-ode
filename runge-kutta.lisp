@@ -154,24 +154,28 @@
                  (> (caar (rest i)) item))
         return i))
 
-(defun insert-at (place-to-put new-points)
-  (let1 (tail (cdr place-to-put))
-    (setf (cdr place-to-put) (append new-points tail))))
-
-(defun cached-ode-solution (the-ode init-t0 init-x0 &optional (init-stepsize *step*))
-  "Create a closure caching already calculated values of the solution."
+(defun cached-ode-solution (the-ode init-x0 init-t0 &optional (init-stepsize *step*))
+  "Create a closure caching already calculated values of the solution.
+  New evolutions are cached.
+  Values between steps are interpolated on a straight line through adjecent known points."
   (let ((stepsize (max *eps* init-stepsize))
-        (known-graph (list (list init-t0 init-x0))))
+        (known-graph (list (list init-t0 init-x0)))
+        (furthest-step init-t0))
     (values
       (lambda (t1)
-        (let* ((closest (find-last-smaller t1 known-graph))
-               (t0 (caar closest))
-               (x0 (cadar closest)))
-          (if (< t1 t0)
-            (error "Can't go back in time."))
-          (if (num-equal t0 t1)
-            x0
-            (let1 (graph (runge-kutta-graph the-ode x0 t0 t1 stepsize))
-              (insert-at closest graph)
-              (cadar (last graph))))))
+        (if (> t1 furthest-step)
+          (let1 (graph (runge-kutta-graph the-ode (cadar (last known-graph)) furthest-step t1 stepsize))
+            (appendf known-graph (rest graph))
+            (setf furthest-step t1)
+            (cadar (last graph)))
+          (let1 (closest (find-last-smaller t1 known-graph))
+            (destructuring-bind ((t0 x0) (t2 x2) &rest rst) closest
+              (declare (ignore rst))
+              (if (< t1 t0)
+                (error "Can't go back in time."))
+              (if (num-equal t0 t1 :eps init-stepsize)
+                x0
+                (let1 (scale (/ (- t1 t0) (- t2 t0)))
+                  (flet ((interpol (x0i x2i) (+ x0i (* scale x2i))))
+                    (mapcar #'interpol x0 x2))))))))
       (lambda () known-graph))))

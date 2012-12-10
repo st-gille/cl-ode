@@ -91,11 +91,15 @@
     (cons (take-n n lst)
           (split-n n (nthcdr n lst)))))
 
+(defun insert-at (place-to-put new-points)
+  (let1 (tail (cdr place-to-put))
+    (setf (cdr place-to-put) (append new-points tail))))
+
 (defparameter *eps* 1.0e-14 "Used for numeric equality.")
 (defparameter *step* 1.0e-4 "Used as a base stepsize.")
 
-(defun num-equal (a b)
-  (and a b (< (abs (- a b)) *eps*)))
+(defun num-equal (a b &key (eps *eps*))
+  (and a b (< (abs (- a b)) eps)))
 
 (defun nassoc (value alist)
   (assoc value alist :test #'num-equal))

@@ -14,7 +14,7 @@
 
 (defun caching-example ()
   (multiple-value-bind (sol graph)
-    (cached-ode-solution #'sine-ode 0.0 '(0.0 1.0) 0.1)
+    (cached-ode-solution #'sine-ode '(0.0 1.0) 0.0 0.1)
     (flet ((print-len ()
              (format t "Length of known graph: ~d"
                      (length (funcall graph))))
@@ -28,9 +28,13 @@
               (funcall graph))
       (with-tableau :explicit-heun
         (print-eval pi)
+        ;(format t "Known graph: ~A~%" (funcall graph))
         (print-len)
         (print-eval (/ pi 2))
+        (print-eval 1.0)
         ;(format t "Known graph: ~A~%" (funcall graph))
+        (print-len)
+        (print-eval (* 2 pi))
         (print-len))
       (print "Returning solution as primary, graph as secondary value.")
       (values sol graph))))
