@@ -27,7 +27,7 @@
      ,doc
      (once-only (object)
        (let1 (tests (mapcar (curry #'apply-predicate object) predicates))
-         (cons (quote ,cnd) tests)))))
+         `(,',cnd ,@tests)))))
 
 (define-for-predicates all-p and
   "Check if every predicate in <predicates> is true for <object>")
