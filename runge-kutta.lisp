@@ -117,15 +117,26 @@
     nil
     (runge-kutta-single-step ode last-x last-t (- t1 last-t))))
 
+(defmacro loop-runge-kutta ((&optional (n-ode 'ode)
+                                       (n-x0 'x0)
+                                       (n-t0 't0)
+                                       (n-t1 't1)
+                                       (n-next-t 'next-t)
+                                       (n-x 'x)
+                                       (n-stepsize 'stepsize))
+                            &body loop-body)
+  `(loop as ,n-next-t from ,n-t0 to ,n-t1 by ,n-stepsize
+        for ,n-x = ,n-x0
+        then (runge-kutta-single-step ,n-ode ,n-x ,n-next-t ,n-stepsize)
+        ,@loop-body))
+
 (defun runge-kutta-graph (ode x0 t0 t1 stepsize)
   "Calculate the graph of the solution of the initial value problem."
-  (loop as next-t from t0 to t1 by stepsize
-        for x = x0
-        then (runge-kutta-single-step ode x next-t stepsize)
-        collect (list next-t x) into graph
-        finally (return
-                  (nconc graph (aif (ensure-last-step ode x (- next-t stepsize) t1)
-                                 (list (list t1 it)))))))
+  (loop-runge-kutta ()
+    collect (list next-t x) into graph
+    finally (return
+              (appendf graph (aif (ensure-last-step ode x (- next-t stepsize) t1)
+                                  (list (list t1 it)))))))
 
 (defun runge-kutta-values (ode x0 t0 t1 stepsize)
   "Calculate the values of the solution of the initial value problem
@@ -136,29 +147,24 @@
   "Calculate the values of the solution of the initial value problem
   at the points {t0, t0 + k * stepsize, t1}.
   This version does not calculate the whole graph first."
-  (loop as next-t from t0 to t1 by stepsize
-        for x = x0
-        then (runge-kutta-single-step ode x next-t stepsize)
-        collect x into vals
-        finally (return (nconc vals (aif (ensure-last-step ode x (- next-t stepsize) t1)
-                                      (list it))))))
+  (loop-runge-kutta ()
+    collect x into vals
+    finally (return (appendf vals (aif (ensure-last-step ode x (- next-t stepsize) t1)
+                                       (list it))))))
 
 (defun runge-kutta (ode x0 t0 t1 stepsize)
   "Calculate the value of the solution of the initial value problem
-  at the point t1.
-  This version does not calculate the whole graph first."
+  at the point t1."
   (cadar (last (runge-kutta-graph ode x0 t0 t1 stepsize))))
 
 (defun runge-kutta-standalone (ode x0 t0 t1 stepsize)
   "Calculate the value of the solution of the initial value problem
   at the point t1.
   This version does not calculate the whole graph first."
-  (loop as next-t from t0 to t1 by stepsize
-        for x = x0
-        then (runge-kutta-single-step ode x next-t stepsize)
-        finally (return (aif (ensure-last-step ode x (- next-t stepsize) t1)
-                          it
-                          x))))
+  (loop-runge-kutta ()
+    finally (return (aif (ensure-last-step ode x (- next-t stepsize) t1)
+                         it
+                         x))))
 
 (defun find-last-smaller (item alist)
   (loop for i = alist
