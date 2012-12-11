@@ -167,7 +167,7 @@
                  (> (caar (rest i)) item))
         return i))
 
-(defun cached-ode-solution (the-ode init-x0 init-t0 &optional (init-stepsize *step*))
+(defun cached-ode-solution (the-ode init-x0 init-t0 &optional (init-stepsize *stepsize*))
   "Create a closure caching already calculated values of the solution.
    Values between steps are interpolated on a straight line through adjecent known points.
    You can change the tableau between evolutions."
@@ -186,7 +186,7 @@
               (declare (ignore rst))
               (if (< t1 t0)
                 (error "Can't go back in time."))
-              (if (num-equal t0 t1 :eps init-stepsize)
+              (if (num-equal t0 t1 init-stepsize)
                 x0
                 (let1 (scale (/ (- t1 t0) (- t2 t0)))
                   (flet ((interpol (x0i x2i) (+ x0i (* scale x2i))))

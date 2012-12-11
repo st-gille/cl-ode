@@ -96,9 +96,9 @@
     (setf (cdr place-to-put) (append new-points tail))))
 
 (defparameter *eps* 1.0e-14 "Used for numeric equality.")
-(defparameter *step* 1.0e-4 "Used as a base stepsize.")
+(defparameter *stepsize* 1.0e-4 "Used as a base stepsize.")
 
-(defun num-equal (a b &key (eps *eps*))
+(defun num-equal (a b &optional (eps *eps*))
   (and a b (< (abs (- a b)) eps)))
 
 (defun nassoc (value alist)
@@ -107,22 +107,20 @@
 (defun swap-matrix-layout (matrix)
   (apply #'mapcar (cons #'list matrix)))
 
-(defun central-diff-quot (f x)
-  "Approximate d/dx f(x) via the central difference quotiont.
-  Override *step* for different stepsize."
-  (let* ((x+ (+ x *step*))
-         (x- (- x *step*))
+(defun central-diff-quot (f x &optional (stepsize *stepsize*))
+  "Approximate d/dx f(x) via the central difference quotiont."
+  (let* ((x+ (+ x stepsize))
+         (x- (- x stepsize))
          (fx+ (funcall f x+))
          (fx- (funcall f x-))
-         (formula (lambda (fx fy)  (* 0.5 (/ 1.0 *step*) (- fx fy)))))
+         (formula (lambda (fx fy)  (* 0.5 (/ 1.0 stepsize) (- fx fy)))))
     (if (atom fx-)
       (funcall formula fx+ fx-)
       (mapcar formula fx+ fx-))))
 
-(defun make-central-diff-quot (f)
-  "Return new function approximating the derivative of input.
-  Override *step* for different stepsize."
-  (lambda (x) (central-diff-quot f x)))
+(defun make-central-diff-quot (f &optional (stepsize *stepsize*))
+  "Return new function approximating the derivative of input."
+  (lambda (x) (central-diff-quot f x stepsize)))
 
 (defun curry-at-nth (f x n)
   "Return a new function that calls f with x modified to it's argument at the n-th
@@ -152,7 +150,7 @@
 (defun dot-product (u v)
   (apply #'+ (mapcar #'* u v)))
 
-(defun make-graph (f t0 t1 stepsize)
+(defun make-graph (f t0 t1 &optional (stepsize *stepsize*))
   (let ((ft0 (funcall f t0)))
     (if (> t0 t1)
       (list ft0)
