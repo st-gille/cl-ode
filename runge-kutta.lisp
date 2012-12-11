@@ -101,9 +101,10 @@
                          (ode-system-for-step k)))))
       (split-n dim (newton-solver #'implicit-system len)))))
 
-(defun runge-kutta-single-step (f x0 t0 stepsize)
+(defun runge-kutta-single-step (ode x0 t0 stepsize)
+  "Solve a single step of the ode with the current butcher tableau."
   (let* ((solver (if *is-implicit* #'solve-implicit-rks #'solve-explicit-rks))
-         (k (funcall solver f x0 t0 stepsize))
+         (k (funcall solver ode x0 t0 stepsize))
          (bk (mapcar (lambda (bi ki)
                        (mapcar (lambda (kij) (* bi kij))
                                ki))
@@ -117,6 +118,7 @@
     (runge-kutta-single-step ode last-x last-t (- t1 last-t))))
 
 (defun runge-kutta-graph (ode x0 t0 t1 stepsize)
+  "Calculate the graph of the solution of the initial value problem."
   (loop as next-t from t0 to t1 by stepsize
         for x = x0
         then (runge-kutta-single-step ode x next-t stepsize)
@@ -126,9 +128,14 @@
                                  (list (list t1 it)))))))
 
 (defun runge-kutta-values (ode x0 t0 t1 stepsize)
+  "Calculate the values of the solution of the initial value problem
+  at the points {t0, t0 + k * stepsize, t1}."
   (mapcar #'second (runge-kutta-graph ode x0 t0 t1 stepsize)))
 
 (defun runge-kutta-values-standalone (ode x0 t0 t1 stepsize)
+  "Calculate the values of the solution of the initial value problem
+  at the points {t0, t0 + k * stepsize, t1}.
+  This version does not calculate the whole graph first."
   (loop as next-t from t0 to t1 by stepsize
         for x = x0
         then (runge-kutta-single-step ode x next-t stepsize)
@@ -137,9 +144,15 @@
                                       (list it))))))
 
 (defun runge-kutta (ode x0 t0 t1 stepsize)
+  "Calculate the value of the solution of the initial value problem
+  at the point t1.
+  This version does not calculate the whole graph first."
   (cadar (last (runge-kutta-graph ode x0 t0 t1 stepsize))))
 
 (defun runge-kutta-standalone (ode x0 t0 t1 stepsize)
+  "Calculate the value of the solution of the initial value problem
+  at the point t1.
+  This version does not calculate the whole graph first."
   (loop as next-t from t0 to t1 by stepsize
         for x = x0
         then (runge-kutta-single-step ode x next-t stepsize)
@@ -156,8 +169,8 @@
 
 (defun cached-ode-solution (the-ode init-x0 init-t0 &optional (init-stepsize *step*))
   "Create a closure caching already calculated values of the solution.
-  New evolutions are cached.
-  Values between steps are interpolated on a straight line through adjecent known points."
+   Values between steps are interpolated on a straight line through adjecent known points.
+   You can change the tableau between evolutions."
   (let ((stepsize (max *eps* init-stepsize))
         (known-graph (list (list init-t0 init-x0)))
         (furthest-step init-t0))

@@ -25,6 +25,9 @@ install: libnewton.so
 	sudo cp -f --remove-destination $< /usr/lib/$<.1.0.0
 	sudo ldconfig
 
+ode:
+	sbcl --eval "(progn (require \"asdf\") (asdf:operate 'asdf:load-op 'ode :verbose nil))"
+
 clean:
 	find . -name "*~" -delete
 	find . -name "*.swp" -delete

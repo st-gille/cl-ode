@@ -1,6 +1,7 @@
 (in-package :ode)
 
 (defun identity-ode (tt x)
+  (declare (ignore tt))
   x)
 
 (defmacro test-runge-kutta (tableau &optional (method 'runge-kutta))
@@ -10,6 +11,7 @@
     t))
 
 (defun sine-ode (tt xx)
+  (declare (ignore tt))
   (list (second xx) (- (first xx))))
 
 (defun caching-example ()

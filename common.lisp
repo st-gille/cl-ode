@@ -49,7 +49,7 @@
 
 (defmacro make-alist-calling (fname &rest rest)
   "Construct an alist of symbols and arguments,
-  calling the function fname on each argument."
+  calling the function <fname> on each argument."
   `(list ,@(mapcar (lambda (x)
                      `(cons (quote ,(car x)) (,fname ,@(second x))))
                    rest)))
@@ -156,5 +156,5 @@
   (let ((ft0 (funcall f t0)))
     (if (> t0 t1)
       (list ft0)
-      (cons ft0 (eval-f f (+ t0 stepsize) t1 stepsize)))))
+      (cons ft0 (make-graph f (+ t0 stepsize) t1 stepsize)))))
 
