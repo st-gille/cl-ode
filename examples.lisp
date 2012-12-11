@@ -44,7 +44,9 @@
 (defun run-examples ()
   (progn
     (test-runge-kutta :explicit-euler)
+    (test-runge-kutta :explicit-euler runge-kutta-standalone)
     (test-runge-kutta :explicit-euler runge-kutta-values)
+    (test-runge-kutta :explicit-euler runge-kutta-values-standalone)
     (test-runge-kutta :explicit-euler runge-kutta-graph)
     (test-runge-kutta :implicit-euler)
     (test-runge-kutta :implicit-trapezoid runge-kutta)
