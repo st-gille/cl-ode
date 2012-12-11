@@ -1,46 +1,55 @@
+#include "newton.h"
 
-#include "math.h"
-#include "float.h"
-#include "stdint.h"
-#include "stdlib.h"
+#ifdef NDEBUG
+#   define DEBUG_PRINT(...)
+#   define DEBUG(X)
+#else
+#   define DEBUG_PRINT printf
+#   define DEBUG(X) X
+#endif
 
-typedef uint64_t dim_t;
-typedef int8_t err_t;
-typedef const double * const *const_mat;
+#define DEFINE_PRINT_VECTOR_T(type, suffix, format)             \
+    void print_vector##suffix(dim_t dim, const type *x)         \
+{                                                           \
+    printf("[");                                            \
+    if(x && dim > 0)                                        \
+    {                                                       \
+        for(dim_t i = 0; i < dim; ++i)                      \
+        printf(format, x[i]);                               \
+    }                                                       \
+    printf(" ]\n");                                         \
+}
 
-struct uint_errno_t
+DEFINE_PRINT_VECTOR_T(int, _i, " %d")
+DEFINE_PRINT_VECTOR_T(dim_t, _u, " %u")
+DEFINE_PRINT_VECTOR_T(double, , " %e")
+DEFINE_PRINT_VECTOR_T(double *, _x, " %x")
+
+#undef DEFINE_PRINT_VECTOR_T
+
+void print_matrix(dim_t rows, dim_t cols, const_mat A)
 {
-    dim_t result;
-    err_t errno;
-};
+    for(dim_t row = 0; row < rows; ++row)
+        print_vector(cols, A[row]);
+}
 
-#define SUCCESS (0)
-#define FAILURE (1)
-
-#define EPS (DBL_EPSILON)
-
-double norm2sqr(int dim, const double *x)
+double norm2sqr(dim_t dim, const double *x)
 {
     double tmp = 0.0;
-    for (int i = 0; i < dim; ++i)
+    for (dim_t i = 0; i < dim; ++i)
         tmp += x[i] * x[i];
+    DEBUG_PRINT("norm2sqr: dim = %u, res = %f, x =", dim, tmp);
+
     return tmp;
 }
 
 double norm2(dim_t dim, const double *x)
 {
+    DEBUG_PRINT("in norm2: dim = %u, x = ", dim);
+    DEBUG(print_vector(dim, x));
     return sqrt(norm2sqr(dim, x));
 }
 
-
-/*!
- * Calculate the LR-decomposition of a square matrix in-place.
- * @param dim   doublehe size of the matrix.
- * @param A     A square matrix in row-major format, will be overwritten with the LR-decomposition.
- * @param ipiv  Keeps track of row-swaps, upon successful exit ipiv[i] contains the original index of what is now the
- *              i-th row of the decomposed matrix. Pass this to LRSolve.
- * @return 0 on success, 1 if matrix is considered singular.
- */
 struct uint_errno_t searchpivotincoloumn(dim_t dim, const_mat A, dim_t column)
 {
     struct uint_errno_t ret = { column, SUCCESS };
@@ -58,47 +67,42 @@ struct uint_errno_t searchpivotincoloumn(dim_t dim, const_mat A, dim_t column)
 
 err_t lr_decomp(dim_t dim, double **A, dim_t * ipiv)
 {
-    dim_t i, j, p;
-    // Initialize pivot vector.
+    dim_t i, j;
+    double dtmp;
+    struct uint_errno_t ret;
+
     for (i = 0; i < dim; ++i)
         ipiv[i] = i;
 
     for (i = 0; i < dim; ++i)
     {
-        struct uint_errno_t ret = searchpivotincoloumn(dim, (const_mat) A, i);
-        if (ret.errno != 0)
+        ret = searchpivotincoloumn(dim, (const_mat) A, i);
+        if (ret.errno == FAILURE)
             return FAILURE;
 
-        if (p != i) // swap rows
+        if (ret.result != i)
         {
-            double *dtmp = A[i];
-            A[i] = A[p];
-            A[p] = dtmp;
+            for(j = 0; j < dim; ++j)
+            {
+                dtmp = A[i][j];
+                A[i][j] = A[ret.result][j];
+                A[ret.result][j] = dtmp;
+            }
             j = ipiv[i];
-            ipiv[i] = ipiv[p];
-            ipiv[p] = j;
+            ipiv[i] = ipiv[ret.result];
+            ipiv[ret.result] = j;
         }
 
-        for (p = i + 1; p < dim; ++p)
+        for (ret.result = i + 1; ret.result < dim; ++ret.result)
         {
-            A[p][i] /= A[i][i];
+            A[ret.result][i] /= A[i][i];
             for (j = i + 1; j < dim; ++j)
-            {
-                A[p][j] -= A[p][i] * A[i][j];
-            }
+                A[ret.result][j] -= A[ret.result][i] * A[i][j];
         }
     }
     return SUCCESS;
 }
 
-/*!
- * Solve Ax=b for A in LR-decomposed form (as given by LRDecomp) and a given right-hand side b.
- * @param dim   doublehe size of the system.
- * @param LR    doublehe LR-decomposition of the coefficients matrix as given by LRDecomp.
- * @param b     C-style array of the right-hand side.
- * @param x     C-style array that will contain the solution upon return.
- * @param ipiv  New row ordering as given by LRDecomp.
- */
 void lr_solve(dim_t dim, const double * const * LR, const double *b, double *x, const dim_t *ipiv)
 {
     dim_t i, j;
@@ -113,88 +117,108 @@ void lr_solve(dim_t dim, const double * const * LR, const double *b, double *x, 
     }
 
     // backward substitution
-    for (i = dim - 1; i >= 0; --i)
+    i = dim;
+    do
     {
+        --i;
         tmp = x[i];
         for (j = dim - 1; j > i; --j)
             tmp -= (LR[i][j] * x[j]);
         x[i] = tmp / LR[i][i];
-    }
+
+    } while(i != 0);
 }
 
-void alloc(dim_t rows, dim_t cols, double*** data)
+void *matrix_alloc(dim_t rows, dim_t cols, dim_t size)
 {
-    *data = (double **) malloc(rows * sizeof(double*));
+    DEBUG_PRINT("in alloc: %u %u %#x\n", rows, cols);
+    void **data = malloc(rows * sizeof(void*));
+    void *tmp = malloc(rows * cols * size);
     for (dim_t row = 0; row < rows; ++row)
-        **data = malloc(cols * sizeof(double));
+    {
+        data[row] = tmp;
+        tmp += cols * size;
+    }
+    return data;
 }
 
-void dealloc(dim_t n, double ** data)
+void matrix_dealloc(dim_t n, void **data)
 {
-    for (dim_t i = 0; i < n; ++i)
-        free(data[i]);
+    free(*data);
     free(data);
 }
 
 struct newton_data_t
 {
     dim_t dim;
-    double **A;
-    double *b, *d;
-    double *x, *s;
+    double **A, *d, *s;
     dim_t *pivot;
 };
 
-void init_newton_data(struct newton_data_t* data, dim_t dim)
+void alloc_newton_data(struct newton_data_t* data, dim_t dim)
 {
-
     data->dim = dim;
-    alloc(dim, dim, &data->A);
-    data->b = malloc(sizeof( double) * dim * 4);
-    data->d = data->b + dim;
-    data->x = data->d + dim;
-    data->s = data->x + dim;
+    DEBUG_PRINT("in alloc_newton_data\n");
+    DEBUG_PRINT("data: %#x\n", data);
+    data->A = matrix_alloc(dim, dim, sizeof(double));
+    data->d = malloc(sizeof(double) * dim * 2);
+    data->s = data->d + dim;
     data->pivot = malloc(sizeof(dim_t) * dim);
 }
 
 void free_newton_data(struct newton_data_t* data)
 {
-    dealloc(data->dim, data->A);
-    free(data->b);
-    free(data->x);
+    matrix_dealloc(data->dim, (void **) data->A);
+    free(data->d);
     free(data->pivot);
 }
 
-err_t newtons_method(double* x,
-                   const double* t,
-                   int dim,
-                   int vars,
-                   void (*f)(const double*, const double*, double*),
-                   void (*df)(const double*, const double*, double**))
+err_t newtons_method(dim_t dim,
+        double* x,
+        void (*f)(const double*, double*),
+        void (*df)(const double*, double**))
 {
+    DEBUG_PRINT("in newtons_method: (dim x f df) = (%d %#x %#X %#X)\n", dim, x, f, df);
     struct newton_data_t data;
-    init_newton_data(&data, dim);
+    alloc_newton_data(&data, dim);
+    DEBUG_PRINT("allocated newton data: %#x\n", &data);
 
-    dim_t i, j;
+    dim_t j;
     const int itmax = 50;
     const double eps = 1.0e-12;
     double norm_delta = 1.0;
 
+    DEBUG_PRINT("x = ");
+    DEBUG(print_vector(dim, x));
     int iter;
     for (iter = 1; iter <= itmax; ++iter)
     {
-        f(data.x, t, data.s);
-        df(data.x, t, data.A);
+        DEBUG_PRINT("----------- step %d----------------\nf(x) = ", iter);
 
-        // Solve A*d = b.
+        f(x, data.s);
+        DEBUG(print_vector(dim, data.s));
+        DEBUG_PRINT("|f(x)| = %e, ", norm2(dim, data.s));
+
+        if(norm2(dim, data.s) < eps)
+        {
+            free_newton_data(&data);
+            return SUCCESS;
+        }
+
+        df(x, data.A);
+        DEBUG_PRINT("A = ");
+        DEBUG(print_matrix(dim, dim, (const_mat) data.A));
         if (lr_decomp(dim, data.A, data.pivot))
         {
             free_newton_data(&data);
             return FAILURE;
         }
-        lr_solve(dim, (const_mat) data.A, data.b, data.d, data.pivot);
+        lr_solve(dim, (const_mat) data.A, data.s, data.d, data.pivot);
 
         norm_delta = norm2(dim, data.d);
+        DEBUG_PRINT("|delta| = %e, delta = ", norm_delta);
+        DEBUG(print_vector(dim, data.d));
+
         if (isnan(norm_delta))
         {
             free_newton_data(&data);
@@ -202,26 +226,89 @@ err_t newtons_method(double* x,
         }
 
         for (j = 0; j < dim; ++j)
-            data.x[j] -= data.d[j];
+            x[j] -= data.d[j];
+        DEBUG_PRINT("x = ");
+        DEBUG(print_vector(dim, x));
 
         if (norm_delta < eps)
         {
-            for (i = 0; i < dim; ++i)
-                x[i] = data.x[i];
             free_newton_data(&data);
             return SUCCESS;
         }
     }
 
-    // if norm is small, accept iterate anyway.
-    if (norm2(dim, data.d) < eps)
-    {
-        for (i = 0; i < dim; ++i)
-            x[i] = data.x[i];
-        free_newton_data(&data);
-        return SUCCESS;
-    }
-
     free_newton_data(&data);
     return FAILURE;
 }
+
+err_t newtons_method_implicit(dim_t dim,
+        double* x,
+        const double* t,
+        void (*f)(const double*, const double*, double*),
+        void (*df)(const double*, const double*, double**))
+{
+    DEBUG_PRINT("in newtons_method: (dim x t f df) = (%d %#x %#x %#X %#X)\n", dim, x, t, f, df);
+    struct newton_data_t data;
+    alloc_newton_data(&data, dim);
+    DEBUG_PRINT("allocated newton data: %#x\n", &data);
+
+    dim_t j;
+    const int itmax = 50;
+    const double eps = 1.0e-12;
+    double norm_delta = 1.0;
+
+    DEBUG_PRINT("x = ");
+    DEBUG(print_vector(dim, x));
+    DEBUG_PRINT("t = ");
+    DEBUG(print_vector(dim, t));
+    int iter;
+    for (iter = 1; iter <= itmax; ++iter)
+    {
+        DEBUG_PRINT("----------- step %d----------------\n", iter);
+
+        f(x, t, data.s);
+        DEBUG_PRINT("|f(x,t)| = %e, ", norm2(dim, data.s));
+        DEBUG(print_vector(dim, data.s));
+
+        if(norm2(dim, data.s) < eps)
+        {
+            free_newton_data(&data);
+            return SUCCESS;
+        }
+
+        df(x, t, data.A);
+        DEBUG_PRINT("A = ");
+        DEBUG(print_matrix(dim, dim, (const_mat) data.A));
+        if (lr_decomp(dim, data.A, data.pivot))
+        {
+            free_newton_data(&data);
+            return FAILURE;
+        }
+        lr_solve(dim, (const_mat) data.A, data.s, data.d, data.pivot);
+
+        norm_delta = norm2(dim, data.d);
+        DEBUG_PRINT("|delta| = %e, delta = ", norm_delta);
+        DEBUG(print_vector(dim, data.d));
+
+        if (isnan(norm_delta))
+        {
+            free_newton_data(&data);
+            return FAILURE;
+        }
+
+        for (j = 0; j < dim; ++j)
+            x[j] -= data.d[j];
+        DEBUG_PRINT("x = ");
+        DEBUG(print_vector(dim, x));
+
+        if (norm_delta < eps)
+        {
+            free_newton_data(&data);
+            return SUCCESS;
+        }
+    }
+    free_newton_data(&data);
+    return FAILURE;
+}
+
+#undef DEBUG_PRINT
