@@ -50,17 +50,6 @@
   (loop for i below size
         collect (mem-aref vec type i)))
 
-
-(defmacro make-callback (name dim f)
-  `(defcallback ,name :void ((py :pointer) (pres ::pointer))
-     (let1 (y (convert-from-c-vector ,dim py))
-       (set-c-vector pres (funcall ,f  y)))))
-
-(defmacro make-callback-2d (name dim f)
-  `(defcallback ,name :void ((py :pointer) (ppres ::pointer))
-     (let1 (y (convert-from-c-vector ,dim py))
-       (set-c-matrix ppres (funcall ,f y)))))
-
 (defmethod set-c-matrix (A rows)
   "Row-wise initialization of c-style matrices."
   (loop for row being the elements of rows
@@ -74,6 +63,11 @@
                  do (setf (mem-aref (mem-aref A :pointer i) :double j)
                           (aref rows i j)))))
 
+(defmacro make-callback (name dim f &optional (convert-to-c `set-c-vector))
+  `(defcallback ,name :void ((py :pointer) (pres ::pointer))
+     (let1 (y (convert-from-c-vector ,dim py))
+       (,convert-to-c pres (funcall ,f  y)))))
+
 (defun newton-solver
   (nleqs len
          &optional (initial-guess (make-array len
@@ -83,8 +77,13 @@
   If not specified, the <initial-guess> is taken as the zero vector of length <len>."
   (with-foreign-object (k :double len)
     (set-c-vector k initial-guess)
-    (make-callback c-f len nleqs)
-    (make-callback-2d c-df len (make-jacobian nleqs))
+    (make-callback c-f
+                   len
+                   nleqs)
+    (make-callback c-df
+                   len
+                   (make-jacobian nleqs)
+                   set-c-matrix)
     (when (= 1 (newtons-method len k
                                (get-callback 'c-f)
                                (get-callback 'c-df)))
