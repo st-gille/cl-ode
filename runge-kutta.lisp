@@ -26,13 +26,13 @@
 ;define known tableau names as keywords
 (mapcar #'make-keyword (mapcar #'string (mapcar #'first *tableaus*)))
 
-(defvar *selected-tableau*)
+(defvar *selected-tableau* (make-butcher))
 (defvar *A*)
 (defvar *b*)
 (defvar *c*)
 (defvar *is-implicit*)
 
-(defun update-variables (selected-tableau)
+(defun update-selected-tableau (selected-tableau)
   (declare (type butcher-tableau selected-tableau))
   (with-slots (matrix weights time-coeffs is-implicit) selected-tableau
     (setf *A* matrix
@@ -40,7 +40,7 @@
           *c* time-coeffs
           *is-implicit* is-implicit)))
 
-(update-variables (make-butcher))
+(update-selected-tableau (make-butcher))
 
 (defmacro with-tableau (tableau &body body)
   "Create context that defines a specific butcher tableau.
@@ -54,7 +54,7 @@
        (if (any-p *selected-tableau* null (not butcher-tableau-p))
          (error "Not a valid butcher-tableau: ~A~%" *selected-tableau*))
        (let ((*A* ) (*b*) (*c*) (*is-implicit*))
-         (update-variables *selected-tableau*)
+         (update-selected-tableau *selected-tableau*)
          ,@body))))
 
 (defun eval-point (x k aj)
