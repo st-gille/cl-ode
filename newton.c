@@ -1,3 +1,8 @@
+#include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "newton.h"
 
 #ifdef NDEBUG

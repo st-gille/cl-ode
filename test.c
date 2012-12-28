@@ -1,3 +1,6 @@
+#include <math.h>
+#include <stdio.h>
+
 #include "newton.h"
 
 void f(const double *x, double *res)

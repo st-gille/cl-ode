@@ -1,8 +1,4 @@
-#include <math.h>
-#include <float.h>
-#include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 typedef uint64_t dim_t;
 typedef int8_t err_t;
