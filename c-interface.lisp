@@ -64,9 +64,9 @@
                           (aref rows i j)))))
 
 (defmacro make-callback (name dim f &optional (convert-to-c `set-c-vector))
-  `(defcallback ,name :void ((py :pointer) (pres ::pointer))
-     (let1 (y (convert-from-c-vector ,dim py))
-       (,convert-to-c pres (funcall ,f  y)))))
+  `(defcallback ,name :void ((parg :pointer) (pres ::pointer))
+     (let1 (arg (convert-from-c-vector ,dim parg))
+           (,convert-to-c pres (funcall ,f  arg)))))
 
 (defun newton-solver
   (nleqs len

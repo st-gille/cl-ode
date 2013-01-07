@@ -93,7 +93,7 @@
 
 (defun insert-at (place-to-put new-points)
   (let1 (tail (cdr place-to-put))
-    (setf (cdr place-to-put) (append new-points tail))))
+    (setf tail (append new-points tail))))
 
 (defparameter *eps* 1.0e-14 "Used for numeric equality.")
 (defparameter *stepsize* 1.0e-4 "Used as a base stepsize.")

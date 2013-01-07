@@ -167,15 +167,15 @@
                          x))))
 
 (defun find-last-smaller (item alist)
-  (loop for i = alist
-        then (rest i)
-        when (or (null (rest i))
-                 (> (caar (rest i)) item))
-        return i))
+  (loop for rst = alist
+        then (rest rst)
+        when (or (null (rest rst))
+                 (> (caadr rst) item))
+        return rst))
 
 (defun cached-ode-solution (the-ode init-x0 init-t0 &optional (init-stepsize *stepsize*))
   "Create a closure caching already calculated values of the solution.
-   Values between steps are interpolated on a straight line through adjecent known points.
+   Values between steps are interpolated on a straight line through adjacent known points.
    You can change the tableau between evolutions."
   (let ((stepsize (max *eps* init-stepsize))
         (known-graph (list (list init-t0 init-x0)))
