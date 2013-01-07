@@ -55,9 +55,9 @@ double norm2(dim_t dim, const double *x)
     return sqrt(norm2sqr(dim, x));
 }
 
-struct uint_errno_t searchpivotincoloumn(dim_t dim, const_mat A, dim_t column)
+uint_errno_t searchpivotincoloumn(dim_t dim, const_mat A, dim_t column)
 {
-    struct uint_errno_t ret = { column, SUCCESS };
+    uint_errno_t ret = { column, SUCCESS };
 
     for (dim_t j = column + 1; j < dim; ++j)
     {
@@ -74,7 +74,7 @@ err_t lr_decomp(dim_t dim, double **A, dim_t * ipiv)
 {
     dim_t i, j;
     double dtmp;
-    struct uint_errno_t ret;
+        uint_errno_t ret;
 
     for (i = 0; i < dim; ++i)
         ipiv[i] = i;

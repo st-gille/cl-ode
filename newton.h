@@ -4,11 +4,11 @@ typedef uint64_t dim_t;
 typedef int8_t err_t;
 typedef const double * const *const_mat;
 
-struct uint_errno_t
+typedef struct uint_errno_s
 {
     dim_t result;
     err_t errno;
-};
+} uint_errno_t;
 
 #define SUCCESS (0)
 #define FAILURE (1)
