@@ -42,6 +42,9 @@
 
 (update-selected-tableau (make-butcher))
 
+(defun show-tableaus ()
+  (mapcar #'car *tableaus*))
+
 (defmacro with-tableau (tableau &body body)
   "Create context that defines a specific butcher tableau.
   Pass either an object of type butcher-tableau or a symbol.
